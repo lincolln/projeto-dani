@@ -1,0 +1,6 @@
+__pycache__/
+build/
+backups_kanemberg/
+*.zip
+*.db
+*.pyc
