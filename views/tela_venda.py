@@ -23,22 +23,22 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from controllers import estoque_ctrl
 
-# ── Paletas dinâmicas (claro, escuro) ───────────────────────────────────────
-_BG_WINDOW   = ("#F0F2F8", "#0F1117")
-_BG_CARD     = ("#FFFFFF", "#16191F")
-_BG_HOVER    = ("#E8ECF4", "#22273A")
-_BG_CHECKOUT = ("#F8FAFF", "#131929")
-_FG_PRIMARY  = ("#1A1D2E", "#F0F2F8")
-_FG_MUTED    = ("#6B7280", "#8A8FA8")
-_FG_LABEL    = ("#4B5563", "#A0A8C0")
-_ACCENT_GOLD = ("#B8861F", "#E1B12C")
-_ACCENT_BLUE = ("#1B4F8A", "#2D7DD2")
-_BORDER      = ("#DDE3EE", "#22273A")
+# ── Paletas dinâmicas (claro, escuro — Tema Slate Dark Mobile) ──────────────
+_BG_WINDOW   = ("#F0F2F8", "#0f172a")
+_BG_CARD     = ("#FFFFFF", "#1e293b")
+_BG_HOVER    = ("#E8ECF4", "#0f172a")
+_BG_CHECKOUT = ("#F8FAFF", "#0f172a")
+_FG_PRIMARY  = ("#1A1D2E", "#f8fafc")
+_FG_MUTED    = ("#6B7280", "#94a3b8")
+_FG_LABEL    = ("#4B5563", "#cbd5e1")
+_ACCENT_GOLD = ("#d97706", "#f59e0b")
+_ACCENT_BLUE = ("#2563eb", "#3b82f6")
+_BORDER      = ("#DDE3EE", "#334155")
 
-_BTN_ADD     = ("#1B4F8A", "#2563EB")
-_BTN_FIN     = ("#1B7A4C", "#059669")
-_BTN_DEL     = ("#B91C1C", "#DC2626")
-_BTN_FILT    = ("#374151", "#6B7280")
+_BTN_ADD     = ("#2563eb", "#3b82f6")
+_BTN_FIN     = ("#16a34a", "#22c55e")
+_BTN_DEL     = ("#dc2626", "#ef4444")
+_BTN_FILT    = ("#334155", "#475569")
 
 
 def _hex(color_tuple) -> str:
@@ -81,7 +81,7 @@ def _aplicar_estilo_treeview(nome: str, bg_hex: str, heading_fg: str):
 
 class TelaVenda(ctk.CTkFrame):
     """
-    PDV com carrinho, desconto proporcional e histórico diário.
+    PDV com carrinho estilo Mobile Slate Dark, desconto proporcional e histórico diário.
     Herda de CTkFrame para theming nativo claro/escuro sem conflitos.
     """
 
@@ -150,66 +150,63 @@ class TelaVenda(ctk.CTkFrame):
         self._atualizar_tabela_carrinho()
         self._atualizar_historico()
 
-    # ── CARRINHO ──────────────────────────────────────────────────────
+    # ── CARRINHO (ESTILO CARDS MOBILE COM + / - / 🗑️) ─────────────────
 
     def _construir_carrinho(self, parent):
         frame = ctk.CTkFrame(
-            parent, fg_color=_BG_CARD, corner_radius=12,
+            parent, fg_color=_BG_CARD, corner_radius=14,
             border_width=1, border_color=_BORDER,
         )
         frame.grid(row=0, column=1, sticky="nsew", padx=8)
         frame.grid_columnconfigure(0, weight=1)
         frame.grid_rowconfigure(1, weight=1)
 
-        ctk.CTkLabel(
-            frame, text="📋  Carrinho de Compras",
-            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
-            text_color=_FG_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="ew", padx=15, pady=(12, 6))
+        header_cart = ctk.CTkFrame(frame, fg_color="transparent")
+        header_cart.grid(row=0, column=0, sticky="ew", padx=15, pady=(12, 6))
+        header_cart.grid_columnconfigure(0, weight=1)
 
-        # Treeview do carrinho
+        ctk.CTkLabel(
+            header_cart, text="🛍️  Carrinho de Compras",
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
+            text_color=_FG_PRIMARY, anchor="w",
+        ).grid(row=0, column=0, sticky="w")
+
+        self.lbl_badge_itens = ctk.CTkLabel(
+            header_cart, text="0 itens",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=("#2563eb", "#60a5fa"),
+            fg_color=("#dbeafe", "#172554"),
+            corner_radius=999,
+            padx=10, pady=2,
+        )
+        self.lbl_badge_itens.grid(row=0, column=1, sticky="e")
+
+        # Treeview oculta mantida em memória para retrocompatibilidade 100%
         bg_cart = _hex(_BG_CARD)
         _aplicar_estilo_treeview("Cart", bg_cart, _hex(_ACCENT_GOLD))
-
-        frame_tv = tk.Frame(frame, bg=bg_cart)
-        frame_tv.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 4))
-
+        frame_tv_hidden = tk.Frame(frame, bg=bg_cart)
         colunas = ("Modelo", "Qtd", "Unitario", "Subtotal")
         self.tabela_carrinho = ttk.Treeview(
-            frame_tv, columns=colunas, show="headings",
-            height=10, style="Cart.Treeview",
+            frame_tv_hidden, columns=colunas, show="headings",
+            height=1, style="Cart.Treeview",
         )
-        for col, w, anc in [
-            ("Modelo", 280, "w"), ("Qtd", 50, "center"),
-            ("Unitario", 90, "center"), ("Subtotal", 100, "center"),
-        ]:
-            self.tabela_carrinho.heading(col, text=col)
-            self.tabela_carrinho.column(col, width=w, anchor=anc)
 
-        scroll_cart = ttk.Scrollbar(
-            frame_tv, orient="vertical",
-            command=self.tabela_carrinho.yview,
-            style="Venda.Vertical.TScrollbar",
-        )
-        self.tabela_carrinho.configure(yscrollcommand=scroll_cart.set)
-        self.tabela_carrinho.pack(side="left", fill="both", expand=True)
-        scroll_cart.pack(side="right", fill="y")
-
-        # Botão remover item
-        ctk.CTkButton(
+        # Lista visual de Cards do Carrinho (igual ao Mobile PWA)
+        self.frame_cards_carrinho = ctk.CTkScrollableFrame(
             frame,
-            text="🗑  Remover item selecionado",
-            command=self._remover_do_carrinho,
-            font=ctk.CTkFont(family="Segoe UI", size=12),
-            fg_color=("#FEE2E2", "#3B0A0A"),
-            hover_color=("#FCA5A5", "#7F1D1D"),
-            text_color=("#DC2626", "#F87171"),
-            corner_radius=6, height=26,
-        ).grid(row=2, column=0, sticky="e", padx=12, pady=(2, 6))
+            fg_color=_BG_WINDOW,
+            corner_radius=10,
+            border_width=1,
+            border_color=_BORDER,
+            scrollbar_button_color=_ACCENT_BLUE,
+            scrollbar_button_hover_color=_ACCENT_GOLD,
+        )
+        self.frame_cards_carrinho.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 8))
+        self.frame_cards_carrinho.grid_columnconfigure(0, weight=1)
 
         # ── Painel de Checkout ───────────────────────────────────────
         frame_checkout = ctk.CTkFrame(
-            frame, fg_color=_BG_CHECKOUT, corner_radius=8,
+            frame, fg_color=_BG_CHECKOUT, corner_radius=10,
             border_width=1, border_color=_BORDER,
         )
         frame_checkout.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 12))
@@ -577,7 +574,7 @@ class TelaVenda(ctk.CTkFrame):
 
 
     def _renderizar_vitrine(self, produtos: list | None = None):
-        """Reconstrói o grid de botões de produto na vitrine lateral."""
+        """Reconstrói a vitrine lateral com cards no estilo Mobile Slate Dark."""
         for w in self.frame_vitrine_venda.winfo_children():
             w.destroy()
 
@@ -595,44 +592,71 @@ class TelaVenda(ctk.CTkFrame):
             return
 
         for p in produtos:
-            # Campos do produto pai (vindos via variacoes[0] — corte/tecido já injetados pelo controller)
-            var_base = p.get("variacoes", [{}])[0]
+            variacoes = p.get("variacoes", [{}])
+            var_base  = variacoes[0]
             nome   = p.get("modelo", var_base.get("modelo_nome", "Peça"))
             marca  = p.get("marca",  var_base.get("marca",  "N/A"))
             corte  = var_base.get("corte",  "") or ""
             tecido = var_base.get("tecido", "") or ""
+            preco  = var_base.get("preco_venda", 0.0)
+            est_tot = sum(v.get("estoque", 0) for v in variacoes)
 
-            # Linha 1: Tipo — Marca
-            linha1 = f"{nome} — {marca}"
-
-            # Linha 2: Corte | Tecido (omite campo se vazio)
-            detalhes = []
-            if corte.strip():
-                detalhes.append(f"Corte: {corte}")
-            if tecido.strip():
-                detalhes.append(f"Tecido: {tecido}")
-            linha2 = " | ".join(detalhes)
-
-            # Monta texto e altura dinâmica
-            linhas = [linha1]
-            if linha2:
-                linhas.append(linha2)
-
-            texto_btn  = "\n".join(linhas)
-            altura_btn = 54 if len(linhas) == 2 else 46
-
-            ctk.CTkButton(
+            card_item = ctk.CTkFrame(
                 self.frame_vitrine_venda,
-                text=texto_btn,
-                command=lambda pp=p: self._abrir_picker_tamanho(pp),
-                font=ctk.CTkFont(family="Segoe UI", size=12),
-                fg_color=_BG_HOVER,
-                hover_color=_ACCENT_BLUE,
+                fg_color=_BG_CARD,
+                corner_radius=10,
+                border_width=1,
+                border_color=_BORDER,
+                cursor="hand2",
+            )
+            card_item.pack(fill="x", padx=4, pady=4)
+            card_item.grid_columnconfigure(0, weight=1)
+
+            lbl_tit = ctk.CTkLabel(
+                card_item,
+                text=f"{nome} — {marca}",
+                font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
                 text_color=_FG_PRIMARY,
-                corner_radius=8,
-                height=altura_btn,
                 anchor="w",
-            ).pack(fill="x", padx=6, pady=3)
+            )
+            lbl_tit.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=(8, 1))
+
+            sub_parts = [s for s in (corte.strip(), tecido.strip()) if s]
+            sub_txt   = " • ".join(sub_parts) if sub_parts else "Toque para escolher tamanho"
+            lbl_sub = ctk.CTkLabel(
+                card_item,
+                text=sub_txt,
+                font=ctk.CTkFont(family="Segoe UI", size=11),
+                text_color=_FG_MUTED,
+                anchor="w",
+            )
+            lbl_sub.grid(row=1, column=0, columnspan=2, sticky="ew", padx=10, pady=(0, 4))
+
+            lbl_pr = ctk.CTkLabel(
+                card_item,
+                text=f"R$ {preco:.2f}",
+                font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+                text_color=("#16a34a", "#22c55e"),
+                anchor="w",
+            )
+            lbl_pr.grid(row=2, column=0, sticky="w", padx=10, pady=(0, 8))
+
+            lbl_est = ctk.CTkLabel(
+                card_item,
+                text=f"+ {est_tot} un.",
+                font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+                text_color=("#2563eb", "#60a5fa"),
+                fg_color=("#dbeafe", "#172554"),
+                corner_radius=999,
+                padx=8, pady=1,
+            )
+            lbl_est.grid(row=2, column=1, sticky="e", padx=10, pady=(0, 8))
+
+            def _click_vit(e, prod=p):
+                self._abrir_picker_tamanho(prod)
+
+            for w_child in (card_item, lbl_tit, lbl_sub, lbl_pr, lbl_est):
+                w_child.bind("<Button-1>", _click_vit)
 
     def _abrir_picker_tamanho(self, produto_dados: dict):
         """Abre popup centralizado com botões quadrados para cada tamanho disponível."""
@@ -657,27 +681,27 @@ class TelaVenda(ctk.CTkFrame):
         picker = ctk.CTkToplevel(self.winfo_toplevel())
         picker.wm_overrideredirect(True)
         picker.attributes("-topmost", True)
-        picker.configure(fg_color="#16191F")
+        picker.configure(fg_color="#0f172a")
         self._picker_popup = picker
 
         # Borda decorativa azul
-        borda = ctk.CTkFrame(picker, fg_color="#2D7DD2", corner_radius=14)
+        borda = ctk.CTkFrame(picker, fg_color="#3b82f6", corner_radius=14)
         borda.pack(padx=1, pady=1)
-        inner = ctk.CTkFrame(borda, fg_color="#16191F", corner_radius=13)
+        inner = ctk.CTkFrame(borda, fg_color="#1e293b", corner_radius=13)
         inner.pack(padx=1, pady=1)
 
         ctk.CTkLabel(
             inner,
             text=f"⚡  {produto_dados['modelo']}",
             font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
-            text_color="#E1B12C",
+            text_color="#f8fafc",
         ).pack(padx=24, pady=(14, 2))
 
         ctk.CTkLabel(
             inner,
             text=f"{produto_dados['marca']}  —  Selecione o tamanho",
             font=ctk.CTkFont(family="Segoe UI", size=13),
-            text_color="#8A8FA8",
+            text_color="#94a3b8",
         ).pack(padx=24, pady=(0, 12))
 
         # Grade de botões quadrados
@@ -708,8 +732,8 @@ class TelaVenda(ctk.CTkFrame):
                 text=tam,
                 command=_on_click,
                 font=ctk.CTkFont(family="Segoe UI", size=19, weight="bold"),
-                fg_color="#1B4F8A",
-                hover_color="#2D7DD2",
+                fg_color="#2563eb",
+                hover_color="#3b82f6",
                 text_color="#FFFFFF",
                 corner_radius=10,
                 width=72, height=72,
@@ -719,7 +743,7 @@ class TelaVenda(ctk.CTkFrame):
                 bloco,
                 text=f"{est} un.",
                 font=ctk.CTkFont(family="Segoe UI", size=12),
-                text_color="#8A8FA8",
+                text_color="#94a3b8",
             ).pack()
 
         # Botão cancelar
@@ -729,8 +753,8 @@ class TelaVenda(ctk.CTkFrame):
             command=lambda: picker.destroy() if picker.winfo_exists() else None,
             font=ctk.CTkFont(family="Segoe UI", size=13),
             fg_color="transparent",
-            hover_color="#22273A",
-            text_color="#8A8FA8",
+            hover_color="#334155",
+            text_color="#94a3b8",
             corner_radius=6,
             height=28,
         ).pack(pady=(0, 12))
@@ -764,11 +788,66 @@ class TelaVenda(ctk.CTkFrame):
             self.after_cancel(self._debounce_desconto_id)
         self._debounce_desconto_id = self.after(200, self._recalcular_live)
 
+    def _alterar_qtd_item(self, idx: int, delta: int):
+        """Altera a quantidade de um item do carrinho via botões [-] e [+]."""
+        if not (0 <= idx < len(self._carrinho)):
+            return
+        item = self._carrinho[idx]
+        nova_qtd = item["qtd"] + delta
+        if nova_qtd <= 0:
+            self._carrinho.pop(idx)
+            self._atualizar_tabela_carrinho()
+            return
+
+        vid = item["variacao_id"]
+        info = next(
+            (v for v in self._dados_combo.values() if v["variacao_id"] == vid),
+            None,
+        )
+        estoque_max = info["estoque"] if info else nova_qtd
+        if nova_qtd > estoque_max:
+            messagebox.showwarning(
+                "Limite de Estoque",
+                f"Estoque máximo disponível para esta peça: {estoque_max} un.",
+            )
+            return
+
+        item["qtd"] = nova_qtd
+        item["subtotal"] = item["preco"] * nova_qtd
+        self._atualizar_tabela_carrinho()
+
+    def _remover_item_idx(self, idx: int):
+        if 0 <= idx < len(self._carrinho):
+            self._carrinho.pop(idx)
+            self._atualizar_tabela_carrinho()
+
     def _atualizar_tabela_carrinho(self):
+        # 1. Mantém Treeview sincronizada em memória
         for linha in self.tabela_carrinho.get_children():
             self.tabela_carrinho.delete(linha)
+
+        # 2. Reconstrói os Cards visuais estilo Mobile PWA
+        if hasattr(self, "frame_cards_carrinho"):
+            for w in self.frame_cards_carrinho.winfo_children():
+                w.destroy()
+
         subtotal = 0.0
-        for item in self._carrinho:
+        total_pecas = sum(i["qtd"] for i in self._carrinho)
+        if hasattr(self, "lbl_badge_itens"):
+            self.lbl_badge_itens.configure(
+                text=f"{total_pecas} {'item' if total_pecas == 1 else 'itens'}"
+            )
+
+        if not self._carrinho and hasattr(self, "frame_cards_carrinho"):
+            ctk.CTkLabel(
+                self.frame_cards_carrinho,
+                text="🛒  Carrinho vazio\nBipe uma etiqueta ou clique em um produto ao lado.",
+                font=ctk.CTkFont(family="Segoe UI", size=14),
+                text_color=_FG_MUTED,
+                justify="center",
+            ).grid(row=0, column=0, padx=20, pady=50)
+
+        for idx, item in enumerate(self._carrinho):
             subtotal += item["subtotal"]
             self.tabela_carrinho.insert(
                 "", tk.END,
@@ -779,6 +858,97 @@ class TelaVenda(ctk.CTkFrame):
                     f"R$ {item['subtotal']:.2f}",
                 ),
             )
+
+            if hasattr(self, "frame_cards_carrinho"):
+                card = ctk.CTkFrame(
+                    self.frame_cards_carrinho,
+                    fg_color=_BG_CARD,
+                    corner_radius=10,
+                    border_width=1,
+                    border_color=_BORDER,
+                )
+                card.grid(row=idx, column=0, sticky="ew", padx=4, pady=4)
+                card.grid_columnconfigure(0, weight=1)
+
+                # Info esquerda: Nome + Detalhes + Subtotal
+                info_f = ctk.CTkFrame(card, fg_color="transparent")
+                info_f.grid(row=0, column=0, sticky="ew", padx=12, pady=8)
+
+                ctk.CTkLabel(
+                    info_f,
+                    text=f"{item['modelo']} — {item.get('marca', '')}",
+                    font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+                    text_color=_FG_PRIMARY,
+                    anchor="w",
+                ).pack(anchor="w")
+
+                ctk.CTkLabel(
+                    info_f,
+                    text=f"Tam: {item['tamanho']}  •  Cor: {item['cor']}  •  Unit: R$ {item['preco']:.2f}",
+                    font=ctk.CTkFont(family="Segoe UI", size=12),
+                    text_color=_FG_MUTED,
+                    anchor="w",
+                ).pack(anchor="w", pady=(1, 2))
+
+                ctk.CTkLabel(
+                    info_f,
+                    text=f"R$ {item['subtotal']:.2f}",
+                    font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
+                    text_color=("#16a34a", "#22c55e"),
+                    anchor="w",
+                ).pack(anchor="w")
+
+                # Controles direita: [−] Qtd [+] [🗑️]
+                ctrl_f = ctk.CTkFrame(card, fg_color="transparent")
+                ctrl_f.grid(row=0, column=1, sticky="e", padx=10, pady=8)
+
+                ctk.CTkButton(
+                    ctrl_f,
+                    text="−",
+                    width=32, height=32,
+                    corner_radius=8,
+                    fg_color=_BG_WINDOW,
+                    hover_color=_ACCENT_BLUE,
+                    border_width=1,
+                    border_color=_BORDER,
+                    font=ctk.CTkFont(size=16, weight="bold"),
+                    command=lambda i=idx: self._alterar_qtd_item(i, -1),
+                ).pack(side="left", padx=2)
+
+                ctk.CTkLabel(
+                    ctrl_f,
+                    text=str(item["qtd"]),
+                    width=28,
+                    font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
+                    text_color=_FG_PRIMARY,
+                ).pack(side="left", padx=4)
+
+                ctk.CTkButton(
+                    ctrl_f,
+                    text="+",
+                    width=32, height=32,
+                    corner_radius=8,
+                    fg_color=_BG_WINDOW,
+                    hover_color=_ACCENT_BLUE,
+                    border_width=1,
+                    border_color=_BORDER,
+                    font=ctk.CTkFont(size=16, weight="bold"),
+                    command=lambda i=idx: self._alterar_qtd_item(i, +1),
+                ).pack(side="left", padx=2)
+
+                ctk.CTkButton(
+                    ctrl_f,
+                    text="🗑️",
+                    width=32, height=32,
+                    corner_radius=8,
+                    fg_color=("#fee2e2", "#2d161d"),
+                    hover_color=_BTN_DEL,
+                    border_width=1,
+                    border_color=("#fca5a5", "#5c1d24"),
+                    font=ctk.CTkFont(size=14),
+                    command=lambda i=idx: self._remover_item_idx(i),
+                ).pack(side="left", padx=(6, 0))
+
         self.lbl_subtotal.configure(text=f"Subtotal: R$ {subtotal:.2f}")
         self._recalcular_live()
 
@@ -1045,3 +1215,9 @@ class TelaVenda(ctk.CTkFrame):
         # Atualiza a vitrine lateral com os dados frescos
         if hasattr(self, "_dados_vitrine"):
             self._atualizar_dados_vitrine()
+
+    def atualizar_dados(self):
+        """Recarrega vitrine lateral e histórico do dia ao voltar para a aba de Venda (preservando o carrinho)."""
+        self._recarregar_combo()
+        self._atualizar_historico()
+        self._atualizar_tabela_carrinho()

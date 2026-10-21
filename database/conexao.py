@@ -2,10 +2,14 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 import os
+import sys
 
-# Caminho absoluto para o banco de dados dentro da pasta raiz do projeto
-_DIR = os.path.dirname(os.path.abspath(__file__))
-_DB_PATH = os.path.join(_DIR, '..', 'loja_daniel_v2.db')
+# Banco: ao lado do .exe (PyInstaller) ou na raiz do projeto. Nunca em _MEIPASS (temporario).
+if getattr(sys, 'frozen', False):
+    _DB_PATH = os.path.join(os.path.dirname(sys.executable), 'loja_daniel_v2.db')
+else:
+    _DIR = os.path.dirname(os.path.abspath(__file__))
+    _DB_PATH = os.path.join(_DIR, '..', 'loja_daniel_v2.db')
 _DB_URL = f'sqlite:///{os.path.normpath(_DB_PATH)}'
 
 engine = create_engine(_DB_URL, connect_args={'check_same_thread': False})

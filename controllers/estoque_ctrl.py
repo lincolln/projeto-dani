@@ -108,6 +108,8 @@ def listar_produtos_vitrine_grade() -> list[dict]:
                     "_cores_dict":   cores_dict,
                     # Tamanhos: {tamanho: total_estoque}
                     "_tams_dict":    {},
+                    # Mapa {tamanho: variacao_id} com estoque > 0
+                    "_tams_vid_map": {},
                     # IDs de variações com estoque > 0 (para Vender)
                     "variacoes_ids": [],
                 }
@@ -129,25 +131,29 @@ def listar_produtos_vitrine_grade() -> list[dict]:
             # Registra variação com estoque disponível
             if v.estoque and v.estoque > 0:
                 g["variacoes_ids"].append(v.id)
+                if tam and tam not in g["_tams_vid_map"]:
+                    g["_tams_vid_map"][tam] = v.id
 
         # Formata saída final
         resultado = []
         for g in grupos.values():
             resultado.append({
-                "produto_id":     g["produto_id"],
-                "tipo_peca":      g["tipo_peca"],
-                "marca":          g["marca"],
-                "corte":          g["corte"],
-                "tecido":         g["tecido"],
-                "preco_custo":    g["preco_custo"],
-                "preco_venda":    g["preco_venda"],
-                "foto_path":      g["foto_path"],
+                "produto_id":       g["produto_id"],
+                "tipo_peca":        g["tipo_peca"],
+                "marca":            g["marca"],
+                "corte":            g["corte"],
+                "tecido":           g["tecido"],
+                "preco_custo":      g["preco_custo"],
+                "preco_venda":      g["preco_venda"],
+                "foto_path":        g["foto_path"],
                 # Lista de (nome_cor, hex_cor) para os círculos
-                "cores_lista":    list(g["_cores_dict"].items()),
+                "cores_lista":      list(g["_cores_dict"].items()),
                 # Dict {tamanho: total_estoque} para o painel direito
-                "tamanhos_resumo": g["_tams_dict"],
+                "tamanhos_resumo":  g["_tams_dict"],
+                # Mapa {tamanho: variacao_id} com estoque
+                "tamanhos_vid_map": g["_tams_vid_map"],
                 # IDs de variações com estoque (primeiro = candidato a Vender)
-                "variacoes_ids":  g["variacoes_ids"],
+                "variacoes_ids":    g["variacoes_ids"],
             })
 
         return resultado
@@ -351,7 +357,8 @@ def salvar_produto(modelo_nome: str, marca: str, tecido: str, corte: str,
 
 
 def excluir_produto(produto_id: int) -> tuple[bool, str, list[str]]:
-    """Remove o produto e todas as suas variacoes em cascata.
+    """Remove o produto e todas as suas variacoes em cascata,
+    preservando o historico de vendas (variacao_id = None).
 
     Returns:
         Tupla (sucesso, mensagem, lista_de_fotos_para_deletar).
@@ -362,6 +369,11 @@ def excluir_produto(produto_id: int) -> tuple[bool, str, list[str]]:
             return False, "Produto nao encontrado.", []
 
         fotos = [v.foto_path for v in produto.variacoes if v.foto_path]
+        vids = [v.id for v in produto.variacoes]
+        if vids:
+            session.query(Venda).filter(Venda.variacao_id.in_(vids)).update(
+                {Venda.variacao_id: None}, synchronize_session=False
+            )
         session.delete(produto)
 
     return True, "Produto e todas as suas variacoes foram removidos.", fotos
@@ -423,7 +435,7 @@ def atualizar_variacao(variacao_id: int, tamanho: str, cor: str,
 
 
 def excluir_variacao(variacao_id: int) -> tuple[bool, str, str | None]:
-    """Remove uma variacao (SKU) especifica.
+    """Remove uma variacao (SKU) especifica, preservando vendas anteriores.
 
     Returns:
         Tupla (sucesso, mensagem, foto_path_para_deletar).
@@ -433,6 +445,9 @@ def excluir_variacao(variacao_id: int) -> tuple[bool, str, str | None]:
         if not v:
             return False, "Variacao nao encontrada.", None
         foto = v.foto_path
+        session.query(Venda).filter(Venda.variacao_id == variacao_id).update(
+            {Venda.variacao_id: None}, synchronize_session=False
+        )
         session.delete(v)
 
     return True, "Variacao removida.", foto
@@ -604,6 +619,13 @@ def salvar_grade_dinamica(
         variacoes_existentes = session.query(ProdutoVariacao).filter(ProdutoVariacao.produto_id == pid).all()
         variacoes_dict = {v.tamanho: v for v in variacoes_existentes}
 
+        # No modo edição (produto_id informado), zera tamanhos que foram desmarcados
+        if produto_id:
+            tams_marcados = {(t or "").strip() for t in tamanhos_com_qtd.keys()}
+            for v_antiga in variacoes_existentes:
+                if (v_antiga.tamanho or "").strip() not in tams_marcados:
+                    v_antiga.estoque = 0
+
         for tamanho, quantidade in tamanhos_com_qtd.items():
             tamanho = (tamanho or "").strip()
             idx_global += 1
@@ -612,12 +634,14 @@ def salvar_grade_dinamica(
             variacao_existente = variacoes_dict.get(tamanho)
 
             if variacao_existente:
-                # ESPELHAMENTO: Sobrescreve a quantidade exata da tela (ignora antigos pq ja zeramos)
+                # ESPELHAMENTO: Sobrescreve a quantidade exata da tela
                 variacao_existente.estoque     = max(0, quantidade)
                 variacao_existente.preco_custo = preco_custo
                 variacao_existente.preco_venda = preco_venda
                 variacao_existente.cor         = ''
                 variacao_existente.cor_hex     = ''
+                if not getattr(variacao_existente, "codigo_barras", None):
+                    variacao_existente.codigo_barras = f"KNB{pid:05d}{variacao_existente.id:04d}"
                 if foto_path:
                     variacao_existente.foto_path = foto_path
                 atualizados += 1
@@ -634,6 +658,8 @@ def salvar_grade_dinamica(
                     codigo_barras = codigo_barras,
                 )
                 session.add(nova)
+                session.flush()
+                nova.codigo_barras = f"KNB{pid:05d}{nova.id:04d}"
                 criados += 1
 
     total = criados + atualizados

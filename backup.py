@@ -15,13 +15,14 @@ Uso:
 """
 
 import os
+import sys
 import sqlite3
 import threading
 from datetime import datetime
 from pathlib import Path
 
 # ── Configurações centrais ───────────────────────────────────────────────────
-_RAIZ           = os.path.dirname(os.path.abspath(__file__))
+_RAIZ           = (os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__)))
 _ARQUIVO_DB     = os.path.join(_RAIZ, "loja_daniel_v2.db")
 _PASTA_BACKUPS  = os.path.join(_RAIZ, "backups_kanemberg")
 _MAX_BACKUPS    = 5            # número máximo de cópias mantidas

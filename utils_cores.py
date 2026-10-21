@@ -162,10 +162,17 @@ def resolver_cor_hex(nome_cor: str, parent_widget=None, permitir_dialog: bool = 
     if chave in DICIONARIO_CORES:
         return DICIONARIO_CORES[chave]
 
-    # ── 2. Busca parcial (ex: "azul escuro" ao digitar "escuro") ──────────
-    for nome_dict, hex_val in DICIONARIO_CORES.items():
-        if chave in nome_dict or nome_dict in chave:
-            return hex_val
+    # ── 2. Busca parcial (ex: "escuro" -> "azul escuro") ──────────────────
+    # Só vale se o texto digitado for um fragmento (palavras inteiras) de
+    # UMA única cor do dicionário. Nunca o inverso: "rosa bebe" não deve
+    # cair em "rosa". Cores compostas desconhecidas abrem o seletor.
+    palavras = set(chave.split())
+    candidatos = [
+        hex_val for nome_dict, hex_val in DICIONARIO_CORES.items()
+        if palavras and palavras <= set(nome_dict.split())
+    ]
+    if len(candidatos) == 1:
+        return candidatos[0]
 
     # ── 3. Color Picker nativo do Windows ─────────────────────────────────
     if not permitir_dialog:

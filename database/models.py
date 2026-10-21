@@ -63,7 +63,7 @@ class ProdutoVariacao(Base):
     foto_path      = Column(String(300), nullable=True)
 
     produto = relationship('Produto', back_populates='variacoes')
-    vendas  = relationship('Venda',   back_populates='variacao', cascade='all, delete-orphan')
+    vendas  = relationship('Venda',   back_populates='variacao')
 
     def __repr__(self):
         return f"<ProdutoVariacao id={self.id} tam={self.tamanho} cor='{self.cor}' hex='{self.cor_hex}'>"

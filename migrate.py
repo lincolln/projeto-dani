@@ -133,7 +133,7 @@ def migrar():
                 cores_unicas = set(sku['cor'] for sku in skus if sku['cor'])
                 cores_tags_lista = []
                 for c in cores_unicas:
-                    hex_val = resolver_cor_hex(c) or ""
+                    hex_val = resolver_cor_hex(c, permitir_dialog=False) or ""
                     cores_tags_lista.append(f"{c}|{hex_val}")
                 
                 produto = Produto(
@@ -308,7 +308,7 @@ def migrar():
     if contadores['erros']:
         print(f"  ⚠️  Erros ignorados : {contadores['erros']}")
     print("="*50)
-    print("\nAgora execute: python loja_daniel_v2/main.py")
+    print("\nAgora execute: python main.py")
 
 
 if __name__ == "__main__":

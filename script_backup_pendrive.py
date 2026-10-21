@@ -11,6 +11,7 @@ Funcionalidades:
 """
 
 import os
+import sys
 import sqlite3
 import shutil
 import ctypes
@@ -19,7 +20,7 @@ from tkinter import messagebox
 import tkinter as tk
 
 # Constantes de Origem
-_RAIZ_SISTEMA = os.path.dirname(os.path.abspath(__file__))
+_RAIZ_SISTEMA = (os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__)))
 _ARQUIVO_DB   = os.path.join(_RAIZ_SISTEMA, "loja_daniel_v2.db")
 _DIR_IMAGENS  = os.path.join(_RAIZ_SISTEMA, "imagens_produtos")
 

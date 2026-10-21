@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no">
+
+  <!-- PWA / iOS Safari -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kanemberg">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+
+  <title>Kanemberg — Painel Local</title>
+
+  <link rel="manifest" href="/static/manifest.json?v=4">
+  <link rel="apple-touch-icon" href="/static/icon-180.png">
+  <link rel="icon" type="image/png" href="/static/icon-192.png">
+  <link rel="stylesheet" href="/static/style.css?v=4">
+
+  <!-- Leitor de QR Code -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="/static/app.js?v=4" defer></script>
+</head>
+<body>
+
+  <!-- ===================================================== -->
+  <!-- TELA DE ACESSO INTERNO                                -->
+  <!-- ===================================================== -->
+  <section id="tela-login" class="tela-login">
+    <form id="form-login" class="login-card" autocomplete="off">
+      <div class="login-logo">
+        <img src="/static/icon-192.png" alt="Kanemberg" width="76" height="76">
+        <h1>KANEMBERG</h1>
+        <p>Painel Interno de Estoque &amp; PDV</p>
+      </div>
+
+      <label class="campo">
+        <span>Operador</span>
+        <input type="text" id="input-usuario" placeholder="Digite o operador"
+               autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off" required>
+      </label>
+
+      <label class="campo">
+        <span>Código de Acesso</span>
+        <input type="text" id="input-senha" class="input-mascarado" placeholder="Digite o código"
+               autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off" required>
+      </label>
+
+      <p id="login-erro" class="msg-erro hidden"></p>
+
+      <button type="submit" id="btn-login" class="btn btn-primario btn-bloco btn-grande">Acessar Painel</button>
+    </form>
+  </section>
+
+  <!-- ===================================================== -->
+  <!-- CONTAINER PRINCIPAL (SIDEBAR PC + CONTEÚDO + TAB BAR)  -->
+  <!-- ===================================================== -->
+  <div id="app-container" class="app-container hidden">
+
+    <!-- Sidebar Lateral (Visível no PC Widescreen) -->
+    <aside class="sidebar-pc">
+      <div class="sidebar-topo">
+        <img src="/static/icon-192.png" alt="Kanemberg" class="sidebar-logo">
+        <div>
+          <div class="sidebar-marca">KANEMBERG</div>
+          <div id="sidebar-usuario" class="sidebar-sub">Administrador</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button type="button" class="sidebar-btn ativo" data-aba="aba-estoque">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          <span>Estoque</span>
+          <kbd class="atalho-kbd">F1</kbd>
+        </button>
+
+        <button type="button" class="sidebar-btn" data-aba="aba-vender">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"/>
+            <circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+          <span>Vender (PDV)</span>
+          <span id="badge-carrinho-pc" class="badge-inline hidden">0</span>
+          <kbd class="atalho-kbd">F2</kbd>
+        </button>
+
+        <button type="button" class="sidebar-btn" data-aba="aba-fiado">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span>Controle Fiado</span>
+          <kbd class="atalho-kbd">F3</kbd>
+        </button>
+      </nav>
+
+      <div class="sidebar-rodape">
+        <div class="scanner-status">
+          <span class="ponto-verde"></span>
+          <span>Leitor USB / Bipe Ativo</span>
+        </div>
+        <button type="button" id="btn-sair-pc" class="btn-sair btn-bloco">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          <span>Encerrar Sessão</span>
+        </button>
+      </div>
+    </aside>
+
+    <span id="topo-usuario" class="hidden"></span>
+
+    <!-- Área de conteúdo rolável (Sem barra superior ocupando espaço) -->
+    <main class="conteudo">
+
+      <!-- ================= ABA ESTOQUE ================= -->
+      <section id="aba-estoque" class="aba">
+        <div class="busca-fixa">
+          <div class="barra-ferramentas-estoque">
+            <div class="campo-busca flex-1">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="search" id="input-busca-estoque" placeholder="Buscar modelo, marca, cor, tamanho ou código..."
+                     autocapitalize="none" autocorrect="off" spellcheck="false">
+            </div>
+
+            <div id="filtros-estoque" class="filtros-rapidos">
+              <button type="button" class="chip-filtro ativo" data-filtro="todos">Todos</button>
+              <button type="button" class="chip-filtro" data-filtro="com-estoque">Com Estoque</button>
+              <button type="button" class="chip-filtro" data-filtro="baixo">Estoque Baixo</button>
+              <button type="button" class="chip-filtro" data-filtro="zerado">Esgotados</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="kpis-estoque" class="kpis-grid"></div>
+
+        <div id="lista-estoque" class="lista-cards grid-estoque">
+          <p class="vazio">Carregando estoque...</p>
+        </div>
+      </section>
+
+      <!-- ================= ABA VENDER (PDV) ================= -->
+      <section id="aba-vender" class="aba hidden">
+        <div class="pdv-grid">
+          <!-- COLUNA ESQUERDA: Leitura + Catálogo Rápido + Vendas de Hoje -->
+          <div class="pdv-col-esquerda">
+            <div class="card">
+              <div class="bloco-titulo">
+                <h2>Entrada de Peça (QR / Código)</h2>
+                <span class="tag-dica">Bipe USB Automático</span>
+              </div>
+
+              <button type="button" id="btn-toggle-camera" class="btn btn-primario btn-bloco btn-grande">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+                <span>Abrir Câmera QR Code</span>
+              </button>
+
+              <div id="qr-reader" class="qr-reader hidden"></div>
+
+              <form id="form-codigo-manual" class="linha-manual">
+                <input type="text" id="input-codigo-manual" placeholder="Digitar ou bipar código (ex: KNB000010001)"
+                       autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text">
+                <button type="submit" id="btn-adicionar-manual" class="btn btn-secundario">Adicionar</button>
+              </form>
+            </div>
+
+            <!-- Catálogo Rápido Clicável no PDV -->
+            <div class="card card-catalogo-pdv">
+              <div class="bloco-titulo">
+                <h2>Catálogo Rápido (1 Clique = +1 no Carrinho)</h2>
+              </div>
+              <div class="campo-busca mb-10">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="search" id="input-busca-catalogo-pdv" placeholder="Filtrar peça rápida por nome, marca ou tamanho..."
+                       autocapitalize="none" autocorrect="off" spellcheck="false">
+              </div>
+              <div id="lista-catalogo-pdv" class="catalogo-pdv-scroll">
+                <p class="vazio">Carregando peças disponíveis...</p>
+              </div>
+            </div>
+
+            <!-- Histórico de Vendas de Hoje -->
+            <div class="card">
+              <div class="bloco-titulo">
+                <h2>Vendas de Hoje</h2>
+                <span id="resumo-vendas-hoje" class="texto-sucesso font-bold">R$ 0,00</span>
+              </div>
+              <div id="lista-vendas-hoje" class="lista-vendas-hoje">
+                <p class="vazio">Nenhuma venda registrada hoje.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUNA DIREITA: Carrinho + Pagamento + Total -->
+          <div class="pdv-col-direita">
+            <div class="card bloco-carrinho">
+              <div class="bloco-titulo">
+                <h2>Itens no Carrinho</h2>
+                <button type="button" id="btn-limpar-carrinho" class="btn-link">Limpar Tudo</button>
+              </div>
+              <div id="lista-carrinho" class="lista-carrinho">
+                <p class="vazio">Nenhum item no carrinho. Escaneie ou clique numa peça.</p>
+              </div>
+            </div>
+
+            <div class="card bloco-pagamento">
+              <label class="campo">
+                <span>Desconto (R$)</span>
+                <input type="number" id="input-desconto" placeholder="0,00" min="0" step="0.01" inputmode="decimal">
+              </label>
+
+              <div class="campo">
+                <span>Forma de Pagamento</span>
+                <div id="grupo-pagamento" class="grupo-pagamento" role="radiogroup">
+                  <label class="opcao-pgto">
+                    <input type="radio" name="forma_pagamento" value="DINHEIRO" checked>
+                    <span>💵 Dinheiro</span>
+                  </label>
+                  <label class="opcao-pgto">
+                    <input type="radio" name="forma_pagamento" value="PIX">
+                    <span>⚡ PIX</span>
+                  </label>
+                  <label class="opcao-pgto">
+                    <input type="radio" name="forma_pagamento" value="CARTAO">
+                    <span>💳 Cartão</span>
+                  </label>
+                  <label class="opcao-pgto opcao-fiado">
+                    <input type="radio" name="forma_pagamento" value="FIADO">
+                    <span>📒 Fiado</span>
+                  </label>
+                </div>
+              </div>
+
+              <label id="wrap-cliente-venda" class="campo hidden">
+                <span>Cliente (Fiado)</span>
+                <select id="select-cliente-venda" class="hidden">
+                  <option value="">Selecione o cliente...</option>
+                </select>
+              </label>
+
+              <div class="resumo-total">
+                <div class="resumo-linha">
+                  <span>Subtotal</span>
+                  <span id="valor-subtotal">R$ 0,00</span>
+                </div>
+                <div class="resumo-linha texto-perigo">
+                  <span>Desconto</span>
+                  <span id="valor-desconto">- R$ 0,00</span>
+                </div>
+                <div class="resumo-linha resumo-final">
+                  <span>Total</span>
+                  <span id="valor-total">R$ 0,00</span>
+                </div>
+              </div>
+
+              <button type="button" id="btn-finalizar-venda" class="btn btn-sucesso btn-bloco btn-grande">
+                <span>Finalizar Venda</span>
+                <kbd class="atalho-kbd-escuro">F9</kbd>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ABA FIADO ================= -->
+      <section id="aba-fiado" class="aba hidden">
+        <div class="busca-fixa">
+          <div class="linha-manual mb-0">
+            <div class="campo-busca flex-1">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="search" id="input-busca-fiado" placeholder="Buscar cliente por nome ou telefone..."
+                     autocorrect="off" spellcheck="false">
+            </div>
+            <button type="button" id="btn-novo-cliente" class="btn btn-primario">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              <span>Novo</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="kpis-fiado" class="kpis-grid"></div>
+
+        <div id="lista-fiado" class="lista-cards grid-fiado">
+          <p class="vazio">Carregando clientes...</p>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Tab Bar (Mobile — 4 Abas: Estoque | Vender | Fiado | Sair) -->
+    <nav class="tab-bar">
+      <button type="button" id="tab-estoque" class="tab-btn ativo" data-aba="aba-estoque">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+          <line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+        <span>Estoque</span>
+      </button>
+
+      <button type="button" id="tab-vender" class="tab-btn" data-aba="aba-vender">
+        <span class="tab-icone-wrap">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"/>
+            <circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+          <span id="badge-carrinho" class="badge hidden">0</span>
+        </span>
+        <span>Vender</span>
+      </button>
+
+      <button type="button" id="tab-fiado" class="tab-btn" data-aba="aba-fiado">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <span>Fiado</span>
+      </button>
+
+      <button type="button" id="btn-sair" class="tab-btn tab-sair" aria-label="Sair">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        <span>Sair</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ===================================================== -->
+  <!-- MODAL 1: RECEBER PAGAMENTO (FIADO)                     -->
+  <!-- ===================================================== -->
+  <div id="modal-pagamento" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-pagamento-titulo">
+    <form id="form-pagamento" class="modal-card">
+      <h2 id="modal-pagamento-titulo">Receber Pagamento</h2>
+      <p class="modal-sub">
+        Cliente: <strong id="modal-cliente-nome">—</strong>
+      </p>
+      <p class="modal-sub">
+        Saldo devedor: <strong id="modal-cliente-saldo" class="texto-perigo">R$ 0,00</strong>
+      </p>
+
+      <input type="hidden" id="modal-cliente-id">
+
+      <label class="campo">
+        <span>Valor recebido (R$)</span>
+        <div class="linha-manual mb-0">
+          <input type="number" id="input-valor-pagamento" placeholder="0,00" min="0.01" step="0.01" inputmode="decimal" required>
+          <button type="button" id="btn-quitar-total" class="btn btn-secundario">Quitar Total</button>
+        </div>
+      </label>
+
+      <label class="campo">
+        <span>Observação</span>
+        <input type="text" id="input-obs-pagamento" placeholder="Ex: Pago em dinheiro / PIX">
+      </label>
+
+      <div class="modal-acoes">
+        <button type="button" id="btn-cancelar-pagamento" class="btn btn-secundario">Cancelar</button>
+        <button type="submit" id="btn-confirmar-pagamento" class="btn btn-sucesso">Confirmar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===================================================== -->
+  <!-- MODAL 2: CADASTRAR / EDITAR PRODUTO + GRADE            -->
+  <!-- ===================================================== -->
+  <div id="modal-produto" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <form id="form-produto" class="modal-card modal-card-largo">
+      <h2 id="modal-produto-titulo">Novo Produto</h2>
+      <input type="hidden" id="produto-edit-id">
+
+      <div class="form-grid-2">
+        <label class="campo">
+          <span>Modelo / Nome da Peça *</span>
+          <input type="text" id="prod-modelo" placeholder="Ex: Camisa Linho, Calça Jeans" required>
+        </label>
+        <label class="campo">
+          <span>Marca</span>
+          <input type="text" id="prod-marca" placeholder="Ex: Kanemberg, Reserva">
+        </label>
+        <label class="campo">
+          <span>Tecido</span>
+          <input type="text" id="prod-tecido" placeholder="Ex: Algodão, Linho, Jeans">
+        </label>
+        <label class="campo">
+          <span>Corte / Caimento</span>
+          <input type="text" id="prod-corte" placeholder="Ex: Slim, Regular, Oversized">
+        </label>
+      </div>
+
+      <div class="bloco-titulo mt-8">
+        <h3>Grade de Variações (Tamanhos, Cores e Estoque)</h3>
+        <button type="button" id="btn-add-variacao" class="btn btn-secundario btn-sm">+ Adicionar Tamanho</button>
+      </div>
+
+      <div id="lista-variacoes-form" class="lista-variacoes-form"></div>
+
+      <div class="modal-acoes mt-14">
+        <button type="button" id="btn-cancelar-produto" class="btn btn-secundario">Cancelar</button>
+        <button type="submit" id="btn-salvar-produto" class="btn btn-primario">Salvar Produto</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===================================================== -->
+  <!-- MODAL 3: NOVO CLIENTE FIADO                            -->
+  <!-- ===================================================== -->
+  <div id="modal-cliente" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <form id="form-cliente" class="modal-card">
+      <h2>Novo Cliente (Fiado)</h2>
+
+      <label class="campo">
+        <span>Nome Completo *</span>
+        <input type="text" id="cli-nome" placeholder="Ex: João da Silva" required>
+      </label>
+
+      <label class="campo">
+        <span>Telefone / WhatsApp</span>
+        <input type="text" id="cli-telefone" placeholder="Ex: (11) 99999-9999">
+      </label>
+
+      <div class="form-grid-2">
+        <label class="campo">
+          <span>Limite de Crédito (R$)</span>
+          <input type="number" id="cli-limite" value="500" min="0" step="10" required>
+        </label>
+        <label class="campo">
+          <span>Dia Preferencial Pagto</span>
+          <input type="number" id="cli-dia" value="5" min="1" max="31" required>
+        </label>
+      </div>
+
+      <div class="modal-acoes">
+        <button type="button" id="btn-cancelar-cliente" class="btn btn-secundario">Cancelar</button>
+        <button type="submit" id="btn-salvar-cliente" class="btn btn-primario">Cadastrar Cliente</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===================================================== -->
+  <!-- MODAL 4: ETIQUETAS QR CODE PARA IMPRESSÃO              -->
+  <!-- ===================================================== -->
+  <div id="modal-etiquetas" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card modal-card-largo">
+      <div class="bloco-titulo">
+        <h2 id="modal-etiquetas-titulo">Etiquetas QR Code</h2>
+        <div class="acoes-inline">
+          <button type="button" id="btn-imprimir-etiquetas" class="btn btn-primario btn-sm">🖨️ Imprimir Etiquetas</button>
+          <button type="button" id="btn-fechar-etiquetas" class="btn btn-secundario btn-sm">Fechar</button>
+        </div>
+      </div>
+      <p class="modal-sub mb-10">Aponte a câmera do app ou o leitor 2D para qualquer QR Code abaixo para testar a leitura imediata.</p>
+      <div id="area-impressao-etiquetas" class="grade-etiquetas"></div>
+    </div>
+  </div>
+
+  <!-- Toast de feedback -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <!-- Loader global -->
+  <div id="loader" class="loader-overlay hidden">
+    <div class="spinner"></div>
+  </div>
+
+</body>
+</html>

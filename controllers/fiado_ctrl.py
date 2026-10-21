@@ -300,28 +300,60 @@ def registrar_pagamento(cliente_id: int, valor: float,
 
 
 def buscar_extrato(cliente_id: int) -> list[dict]:
-    """Retorna o extrato completo de movimentações de um cliente, incluindo o vencimento fluido."""
+    """Retorna o extrato completo de movimentações de um cliente, incluindo o vencimento fluido
+    e o status FIFO de cada lote de compra (PAGO, ATRASADO, HOJE, ABERTO).
+    """
     with get_session() as session:
         movs = (
             session.query(ContaFiado)
             .filter(ContaFiado.cliente_id == cliente_id)
-            .order_by(ContaFiado.data_movimentacao.desc())
+            .order_by(ContaFiado.data_movimentacao.desc(), ContaFiado.id.desc())
             .all()
         )
+        # Calcula amortização FIFO das compras (da mais antiga para a mais nova)
+        creditos_disp = sum(m.valor for m in movs if m.tipo_movimentacao == 'CREDITO')
+        debitos_cron = sorted(
+            [m for m in movs if m.tipo_movimentacao == 'DEBITO'],
+            key=lambda x: (x.data_movimentacao or datetime.min, x.id or 0),
+        )
+        status_por_id: dict[int, tuple[str, float]] = {}
+        hoje_dt = datetime.now()
+        hoje_date = hoje_dt.date()
+
+        for d in debitos_cron:
+            if creditos_disp >= d.valor - 0.009:
+                creditos_disp -= d.valor
+                status_por_id[d.id] = ("PAGO", 0.0)
+            else:
+                restante_lote = round(d.valor - max(0.0, creditos_disp), 2)
+                creditos_disp = 0.0
+                if d.data_vencimento_lote:
+                    venc_date = d.data_vencimento_lote.date()
+                    if venc_date < hoje_date:
+                        status_por_id[d.id] = ("ATRASADO", restante_lote)
+                    elif venc_date == hoje_date:
+                        status_por_id[d.id] = ("HOJE", restante_lote)
+                    else:
+                        status_por_id[d.id] = ("ABERTO", restante_lote)
+                else:
+                    status_por_id[d.id] = ("ABERTO", restante_lote)
+
         resultado = []
         for m in movs:
-            # Formata a data do vencimento combinado se ela existir (apenas para DÉBITOS)
             venc_str = "—"
             if m.tipo_movimentacao == 'DEBITO' and m.data_vencimento_lote:
                 venc_str = m.data_vencimento_lote.strftime('%d/%m/%Y')
 
+            st_lote, rest_lote = status_por_id.get(m.id, ("CREDITO", 0.0))
             resultado.append({
-                'id':    m.id,
-                'tipo':  m.tipo_movimentacao,
-                'valor': m.valor,
-                'data':  m.data_movimentacao.strftime('%d/%m/%Y %H:%M') if m.data_movimentacao else '',
-                'vencimento_lote': venc_str, # A nova chave enviada para o front-end
-                'obs':   m.descricao,
+                'id':              m.id,
+                'tipo':            m.tipo_movimentacao,
+                'valor':           m.valor,
+                'data':            m.data_movimentacao.strftime('%d/%m/%Y %H:%M') if m.data_movimentacao else '',
+                'vencimento_lote': venc_str,
+                'obs':             m.descricao or '',
+                'status_lote':     st_lote,
+                'restante_lote':   rest_lote,
             })
         return resultado
 
@@ -354,34 +386,60 @@ def resumo_fiado() -> dict:
 
 def listar_clientes_acerto_hoje() -> list[dict]:
     """
-    Varre o banco procurando quais clientes possuem vencimento de algum lote agendado para hoje.
+    Varre o banco procurando clientes com saldo devedor > 0 cujo lote pendente
+    vence HOJE ou já está VENCIDO (atrasado), além de clientes cujo dia preferencial é hoje.
+    Ordena priorizando os mais atrasados primeiro.
     """
-    hoje_str = datetime.now().strftime('%d/%m/%Y')
-    hoje_iso = datetime.now().strftime('%Y-%m-%d')
-    from sqlalchemy import func
+    hoje_dt   = datetime.now()
+    hoje_date = hoje_dt.date()
+    hoje_dia  = hoje_dt.day
+
     with get_session() as session:
         clientes = (
             session.query(Cliente)
-            .filter(Cliente.movimentacoes.any(
-                func.strftime('%Y-%m-%d', ContaFiado.data_vencimento_lote) == hoje_iso
-            ))
             .options(joinedload(Cliente.movimentacoes))
             .all()
         )
-        
+
         lista_retorno = []
         for c in clientes:
             perfil = _calcular_perfil_cliente(c)
-            
-            if perfil['saldo_devedor'] > 0:
-                lote = perfil['lote_urgente']
-                if lote and hasattr(lote, 'data_vencimento_lote') and lote.data_vencimento_lote:
-                    if lote.data_vencimento_lote.strftime('%d/%m/%Y') == hoje_str:
-                        lista_retorno.append({
-                            "id": c.id,
-                            "nome": c.nome,
-                            "telefone": c.telefone,
-                            "saldo_devedor": perfil['saldo_devedor'],
-                            "dia_preferencial_pagamento": lote.data_vencimento_lote.day
-                        })
+            saldo  = perfil['saldo_devedor']
+            if saldo <= 0:
+                continue
+
+            lote = perfil['lote_urgente']
+            urgencia = None
+            dias_atraso = 0
+
+            if lote and getattr(lote, 'data_vencimento_lote', None):
+                venc_date = lote.data_vencimento_lote.date()
+                if venc_date < hoje_date:
+                    urgencia = "ATRASADO"
+                    dias_atraso = (hoje_date - venc_date).days
+                elif venc_date == hoje_date:
+                    urgencia = "HOJE"
+            elif c.dia_preferencial_pagamento == hoje_dia:
+                urgencia = "HOJE"
+
+            if urgencia:
+                lista_retorno.append({
+                    "id": c.id,
+                    "nome": c.nome,
+                    "telefone": c.telefone or "",
+                    "limite_credito": c.limite_credito,
+                    "saldo_devedor": saldo,
+                    "proximo_vencimento": perfil['proximo_vencimento'],
+                    "ranking": perfil['ranking'],
+                    "status_tempo": perfil['status_tempo'],
+                    "urgencia": urgencia,
+                    "dias_atraso": dias_atraso,
+                    "dia_preferencial_pagamento": (
+                        lote.data_vencimento_lote.day
+                        if (lote and getattr(lote, 'data_vencimento_lote', None))
+                        else c.dia_preferencial_pagamento
+                    ),
+                })
+
+        lista_retorno.sort(key=lambda x: (0 if x["urgencia"] == "ATRASADO" else 1, -x["dias_atraso"], -x["saldo_devedor"]))
         return lista_retorno

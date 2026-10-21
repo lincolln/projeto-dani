@@ -26,27 +26,27 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from controllers import estoque_ctrl
 
-# ── Paletas dinâmicas (claro, escuro) ───────────────────────────────────────
-_BG_WINDOW    = ("#F0F2F8", "#0F1117")
-_BG_CARD      = ("#FFFFFF", "#16191F")
-_BG_CARD_SUB  = ("#F4F6FB", "#1C202B")
-_BG_HOVER     = ("#E8ECF4", "#22273A")
-_FG_PRIMARY   = ("#1A1D2E", "#F0F2F8")
-_FG_MUTED     = ("#6B7280", "#8A8FA8")
-_FG_LABEL     = ("#4B5563", "#A0A8C0")
-_ACCENT_GOLD  = ("#B8861F", "#E1B12C")
-_ACCENT_BLUE  = ("#1B4F8A", "#2D7DD2")
-_ACCENT_GREEN = ("#1B7A4C", "#059669")
-_ACCENT_RED   = ("#B91C1C", "#DC2626")
+# ── Paletas dinâmicas (claro, escuro — Tema Slate Dark Mobile) ──────────────
+_BG_WINDOW    = ("#F0F2F8", "#0f172a")
+_BG_CARD      = ("#FFFFFF", "#1e293b")
+_BG_CARD_SUB  = ("#F4F6FB", "#0f172a")
+_BG_HOVER     = ("#E8ECF4", "#334155")
+_FG_PRIMARY   = ("#1A1D2E", "#f8fafc")
+_FG_MUTED     = ("#6B7280", "#94a3b8")
+_FG_LABEL     = ("#4B5563", "#cbd5e1")
+_ACCENT_GOLD  = ("#d97706", "#f59e0b")
+_ACCENT_BLUE  = ("#2563eb", "#3b82f6")
+_ACCENT_GREEN = ("#16a34a", "#22c55e")
+_ACCENT_RED   = ("#dc2626", "#ef4444")
 _ACCENT_PURP  = ("#6B21A8", "#A855F7")
-_BORDER       = ("#DDE3EE", "#22273A")
-_BORDER_HOVER = ("#2D7DD2", "#7C83FD")
-_SEARCH_BG    = ("#FFFFFF", "#1C202B")
+_BORDER       = ("#DDE3EE", "#334155")
+_BORDER_HOVER = ("#2563eb", "#3b82f6")
+_SEARCH_BG    = ("#FFFFFF", "#1e293b")
 
-# Dimensões do card
-_CARD_W       = 230   # largura fixa de cada card em px
-_IMG_SIZE     = 160   # tamanho da imagem do produto
-_CIRCLE_SIZE  = 22    # diâmetro dos círculos de cor
+# Dimensões do card (layout horizontal/compacto estilo Mobile sem foto)
+_CARD_W       = 310   # largura fixa de cada card em px
+_IMG_SIZE     = 150   # mantido por compatibilidade
+_CIRCLE_SIZE  = 16    # diâmetro dos círculos de cor
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -87,23 +87,20 @@ def _criar_circulo_imagem(hex_cor: str, tamanho: int = _CIRCLE_SIZE) -> ctk.CTkI
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# CLASSE — CARD PRODUTO VERTICAL
+# CLASSE — CARD PRODUTO (DESIGN IDÊNTICO AO MOBILE PWA SEM FOTO)
 # ════════════════════════════════════════════════════════════════════════════
 
 class CardProdutoVertical(ctk.CTkFrame):
     """
-    Card vertical premium para exibição de um produto Pai com todas as suas
-    variações (cores e tamanhos) consolidadas.
-
-    Layout de cima para baixo:
-      [TIPO DE PEÇA]         ← badge de cabeçalho
-      [Imagem CTkImage]      ← 160×160, centralizada
-      [Marca / Corte]        ← labels informativos
-      ┌─────────┬─────────┐
-      │Círculos │Tamanhos │  ← miolo dinâmico lado a lado
-      │coloridos│+ qtds   │
-      └─────────┴─────────┘
-      [Custo] / [Venda]      ← rodapé de preços
+    Card compacto idêntico ao card de Estoque do PWA Mobile (sem área de foto):
+      • Linha 0: [Modelo — Marca] .......................... [R$ 100,00]
+      • Linha 1: [Corte | Tecido]
+      • Linha 2: [6 un. em estoque]  + círculos de cores
+      • Linha 3: Divisor sutil
+      • Linha 4: Pílulas de tamanhos [ P ×0 ] [ M ×5 ] [ G ×1 ]
+      • Linha 5: Divisor sutil
+      • Linha 6: Custo discreto + 5 botões minimalistas só com emojis:
+                 [🛒 Vender] [📱 Ver QR] [🖨️ Imprimir] [✏️ Editar] [🗑️ Apagar]
     """
 
     def __init__(
@@ -121,13 +118,11 @@ class CardProdutoVertical(ctk.CTkFrame):
         super().__init__(
             parent,
             fg_color=_BG_CARD,
-            corner_radius=15,
+            corner_radius=14,
             border_width=1,
             border_color=_BORDER,
         )
-        # Removido grid_propagate(False) para permitir que a altura seja flexível
-        # Trava a largura mínima do card com um widget invisível depois
-        ctk.CTkFrame(self, width=240, height=0, fg_color="transparent").grid(row=5, column=0)
+        ctk.CTkFrame(self, width=_CARD_W, height=0, fg_color="transparent").grid(row=7, column=0)
 
         self._dados    = dados_produto
         self._on_edit  = on_editar
@@ -137,23 +132,12 @@ class CardProdutoVertical(ctk.CTkFrame):
         self._on_ver_qr = on_ver_qr
         self._cache_imgs    = cache_imgs
         self._cache_circles = cache_circles
+        self._botoes_acao: list = []
 
-        # ── Controle de menu singleton ───────────────────────────────
-        # Armazena a referência do popup aberto. Garante que apenas
-        # UM menu flutuante exista na tela por vez.
         self._menu_atual: ctk.CTkToplevel | None = None
 
-        # ── Layout proporcional por linhas (Grid Pesado) ────────────────
-        # Coluna única se expande para preencher a largura do card
         self.grid_columnconfigure(0, weight=1)
-        # Linhas com weight=0 → encolhem ao conteúdo (fixas)
-        # Linha 3 com weight=1 → absorve TODA a altura sobrando
-        # Isso empurra o rodé (linha 4) para sempre ficar na BASE do card
-        self.grid_rowconfigure(0, weight=0)   # Badge tipo de peça
-        self.grid_rowconfigure(1, weight=0)   # Imagem do produto
-        self.grid_rowconfigure(2, weight=0)   # Marca / Corte
-        self.grid_rowconfigure(3, weight=1)   # Miolo (Cores + Tamanhos) ← flexível
-        self.grid_rowconfigure(4, weight=0)   # Rodé precos ← sempre na base
+        self.grid_rowconfigure(4, weight=1)   # Linha das pílulas de tamanho absorve diferença de altura
 
         self._construir()
         self._bind_hover_e_click()
@@ -162,220 +146,257 @@ class CardProdutoVertical(ctk.CTkFrame):
 
     def _construir(self):
         d = self._dados
+        tams_resumo = d.get("tamanhos_resumo", {})
+        estoque_total = sum(tams_resumo.values()) if tams_resumo else 0
 
-        # ── 0. Badge tipo de peça ────────────────────────────────────────
-        frame_badge = ctk.CTkFrame(self, fg_color=_ACCENT_BLUE, corner_radius=10)
-        frame_badge.grid(row=0, column=0, sticky="ew", padx=14, pady=(14, 6))
-        frame_badge.grid_columnconfigure(0, weight=1)
+        # ── 0. Linha 1: Título (esquerda) + Preço Verde (direita) ────────
+        frame_header = ctk.CTkFrame(self, fg_color="transparent")
+        frame_header.grid(row=0, column=0, sticky="ew", padx=16, pady=(14, 0))
+        frame_header.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(
-            frame_badge,
-            text=d.get("tipo_peca", "—").upper(),
-            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
-            text_color=("#FFFFFF", "#FFFFFF"),
-            anchor="center",
-        ).grid(row=0, column=0, sticky="ew", padx=6, pady=4)
-
-        # ── 1. Imagem do produto ─────────────────────────────────────────
-        foto_path = d.get("foto_path")
-        chave_img = foto_path or "__padrao__"
-
-        if chave_img not in self._cache_imgs:
-            if foto_path and os.path.exists(foto_path):
-                raw = Image.open(foto_path).resize(
-                    (_IMG_SIZE, _IMG_SIZE), Image.Resampling.LANCZOS
-                )
-            else:
-                # Placeholder degradê cinza-azulado
-                raw = Image.new("RGBA", (_IMG_SIZE, _IMG_SIZE), (30, 35, 50, 255))
-                draw = ImageDraw.Draw(raw)
-                draw.text(
-                    (_IMG_SIZE // 2 - 12, _IMG_SIZE // 2 - 12),
-                    "👕", fill=(140, 150, 180, 200)
-                )
-            self._cache_imgs[chave_img] = ctk.CTkImage(
-                light_image=raw, dark_image=raw, size=(_IMG_SIZE, _IMG_SIZE)
-            )
-
-        ctk_img = self._cache_imgs[chave_img]
-        lbl_img = ctk.CTkLabel(
-            self,
-            text="",
-            image=ctk_img,
-            fg_color=_BG_CARD_SUB,
-            corner_radius=10,
-            width=_IMG_SIZE,
-            height=_IMG_SIZE,
-        )
-        lbl_img.grid(row=1, column=0, padx=14, pady=6, sticky="ew")
-
-        # ── 2. Marca e corte ─────────────────────────────────────────────
-        info_frame = ctk.CTkFrame(self, fg_color="transparent")
-        info_frame.grid(row=2, column=0, sticky="ew", padx=14, pady=(2, 4))
-        info_frame.grid_columnconfigure(0, weight=1)
+        modelo_str = d.get("tipo_peca", "—")
+        marca_str  = d.get("marca", "")
+        titulo_card = f"{modelo_str} — {marca_str}" if marca_str else modelo_str
 
         ctk.CTkLabel(
-            info_frame,
-            text=f"Marca:  {d.get('marca', '—')}",
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
-            text_color=_FG_LABEL,
+            frame_header,
+            text=titulo_card,
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
+            text_color=_FG_PRIMARY,
             anchor="w",
-        ).grid(row=0, column=0, sticky="ew")
+            justify="left",
+            wraplength=185,
+        ).grid(row=0, column=0, sticky="w")
 
+        preco_venda = d.get("preco_venda", 0.0)
+        preco_fmt = f"R$ {preco_venda:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         ctk.CTkLabel(
-            info_frame,
-            text=f"Corte:   {d.get('corte', '—') or '—'}",
-            font=ctk.CTkFont(family="Segoe UI", size=14),
+            frame_header,
+            text=preco_fmt,
+            font=ctk.CTkFont(family="Segoe UI", size=17, weight="bold"),
+            text_color=_ACCENT_GREEN,
+            anchor="e",
+        ).grid(row=0, column=1, sticky="ne", padx=(8, 0))
+
+        # ── 1. Linha 2: Subtítulo (Corte | Tecido) ───────────────────────
+        partes_sub = [p.strip() for p in (d.get("corte", ""), d.get("tecido", "")) if p and p.strip()]
+        subtitulo = " | ".join(partes_sub) if partes_sub else "Padrão"
+        ctk.CTkLabel(
+            self,
+            text=subtitulo,
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=_FG_MUTED,
             anchor="w",
-        ).grid(row=1, column=0, sticky="ew")
+        ).grid(row=1, column=0, sticky="ew", padx=16, pady=(2, 6))
 
+        # ── 2. Linha 3: Badge "X un. em estoque" + Círculos de Cores ─────
+        frame_badge_row = ctk.CTkFrame(self, fg_color="transparent")
+        frame_badge_row.grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 10))
+        frame_badge_row.grid_columnconfigure(1, weight=1)
+
+        if estoque_total <= 0:
+            cor_badge_bg = ("#fee2e2", "#3b1824")
+            cor_badge_fg = ("#dc2626", "#f87171")
+            txt_badge = "Esgotado"
+        elif estoque_total <= 3:
+            cor_badge_bg = ("#fef3c7", "#382814")
+            cor_badge_fg = ("#d97706", "#fbbf24")
+            txt_badge = f"{estoque_total} un. restantes"
+        else:
+            cor_badge_bg = ("#dbeafe", "#1e3a5f")
+            cor_badge_fg = ("#2563eb", "#60a5fa")
+            txt_badge = f"{estoque_total} un. em estoque"
+
+        badge_est = ctk.CTkFrame(frame_badge_row, fg_color=cor_badge_bg, corner_radius=999)
+        badge_est.grid(row=0, column=0, sticky="w")
         ctk.CTkLabel(
-            info_frame,
-            text=f"Tecido: {d.get('tecido', '') or '—'}",
-            font=ctk.CTkFont(family="Segoe UI", size=14),
-            text_color=_FG_MUTED,
-            anchor="w",
-        ).grid(row=2, column=0, sticky="ew")
-
-        # ── 3. Miolo (linha flexível sem trava de altura) ───────
-        frame_miolo = ctk.CTkFrame(
-            self,
-            fg_color=_BG_CARD_SUB,
-            corner_radius=10,
-        )
-        frame_miolo.grid(row=3, column=0, sticky="nsew", padx=14, pady=4)
-        
-        # Sem grid_propagate(False), o miolo expande para caber todos os tamanhos e cores
-        
-        frame_miolo.grid_columnconfigure(0, weight=1)
-        frame_miolo.grid_columnconfigure(1, weight=1)
-        frame_miolo.grid_rowconfigure(0, weight=0)
-        frame_miolo.grid_rowconfigure(1, weight=1)
-
-        cores_unicas = d.get("cores_lista", [])   # lista de (nome, hex)
-        tams_resumo  = d.get("tamanhos_resumo", {}) # {tamanho: total_estoque}
-
-        # ── Título Cores ─────────────────────────────────────────────
-        ctk.CTkLabel(
-            frame_miolo,
-            text="Cores",
+            badge_est,
+            text=txt_badge,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-            text_color=_FG_MUTED,
-            anchor="w",
-        ).grid(row=0, column=0, sticky="w", padx=10, pady=(2, 5))
+            text_color=cor_badge_fg,
+        ).pack(padx=10, pady=2)
 
-        # ── Conteúdo Cores ───────────────────────────────────────────
+        cores_unicas = d.get("cores_lista", [])
         if cores_unicas:
-            frame_grid_cores = ctk.CTkFrame(frame_miolo, fg_color="transparent")
-            frame_grid_cores.grid(row=1, column=0, sticky="nw", padx=10, pady=(2, 5))
-
-            for idx, (nome_cor, hex_cor) in enumerate(cores_unicas):
-                row_c = idx // 4
-                col_c = idx % 4
+            frame_cores = ctk.CTkFrame(frame_badge_row, fg_color="transparent")
+            frame_cores.grid(row=0, column=1, sticky="e")
+            for idx, (nome_cor, hex_cor) in enumerate(cores_unicas[:6]):
                 try:
                     circ = _criar_circulo_imagem(hex_cor, _CIRCLE_SIZE)
                     self._cache_circles.append(circ)
                     lbl = ctk.CTkLabel(
-                        frame_grid_cores,
+                        frame_cores,
                         text="",
                         image=circ,
                         fg_color="transparent",
                         width=_CIRCLE_SIZE,
                         height=_CIRCLE_SIZE,
-                        cursor="hand2",
                     )
-                    lbl.grid(row=row_c, column=col_c, padx=2, pady=2)
+                    lbl.grid(row=0, column=idx, padx=2)
                     lbl.bind("<Enter>", lambda e, n=nome_cor: self._tooltip_show(e, n))
                     lbl.bind("<Leave>", self._tooltip_hide)
                 except Exception:
                     pass
-        else:
-            # ── Fallback: produto sem variações de cor ainda ──────────
-            ctk.CTkLabel(
-                frame_miolo,
-                text="Nenhuma",
-                font=ctk.CTkFont(family="Segoe UI", size=13),
-                text_color=_FG_MUTED,
-                justify="left",
-                anchor="w",
-            ).grid(row=1, column=0, sticky="nw", padx=10, pady=(2, 5))
 
-        # ── Título Estoque ───────────────────────────────────────────
-        ctk.CTkLabel(
-            frame_miolo,
-            text="Estoque",
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-            text_color=_FG_MUTED,
-            anchor="w",
-        ).grid(row=0, column=1, sticky="w", padx=10, pady=(2, 5))
+        # ── 3. Divisor tracejado/sutil 1 ─────────────────────────────────
+        ctk.CTkFrame(self, height=1, fg_color=_BORDER, corner_radius=0).grid(
+            row=3, column=0, sticky="ew", padx=16, pady=(0, 10)
+        )
 
-        # ── Conteúdo Estoque ─────────────────────────────────────────
+        # ── 4. Pílulas de Tamanhos (estilo [ P ×0 ] [ M ×5 ] [ G ×1 ]) ───
+        frame_pills = ctk.CTkFrame(self, fg_color="transparent")
+        frame_pills.grid(row=4, column=0, sticky="nw", padx=16, pady=(0, 10))
+
+        tams_vid_map = d.get("tamanhos_vid_map", {})
         if tams_resumo:
-            linhas = [f"{t}: {q}" for t, q in sorted(
+            tams_ord = sorted(
                 tams_resumo.items(),
                 key=lambda x: _ORDEM_TAMANHOS.get(x[0].upper(), 99)
-            )]
-            ctk.CTkLabel(
-                frame_miolo,
-                text="\n".join(linhas),
-                font=ctk.CTkFont(family="Consolas", size=13),
-                text_color=_FG_PRIMARY,
-                anchor="w",
-                justify="left",
-            ).grid(row=1, column=1, sticky="nw", padx=10, pady=(2, 5))
+            )
+            max_cols_pills = 4
+            for idx_t, (tam_k, qtd_v) in enumerate(tams_ord):
+                r_t = idx_t // max_cols_pills
+                c_t = idx_t % max_cols_pills
+                sem_est = (qtd_v <= 0)
+                vid_tam = tams_vid_map.get(tam_k)
+                pill = ctk.CTkFrame(
+                    frame_pills,
+                    fg_color=("#F4F6FB", "#0f172a"),
+                    corner_radius=8,
+                    border_width=1,
+                    border_color=("#E2E8F0", "#1e293b") if sem_est else _BORDER,
+                    cursor="arrow" if sem_est else "hand2",
+                )
+                pill.grid(row=r_t, column=c_t, padx=(0, 6), pady=3, sticky="w")
+
+                inner_p = ctk.CTkFrame(pill, fg_color="transparent")
+                inner_p.pack(padx=10, pady=4)
+
+                lbl_t = ctk.CTkLabel(
+                    inner_p,
+                    text=str(tam_k),
+                    font=ctk.CTkFont(
+                        family="Segoe UI", size=13, weight="bold",
+                        overstrike=sem_est,
+                    ),
+                    text_color=("#94a3b8", "#475569") if sem_est else _FG_PRIMARY,
+                )
+                lbl_t.pack(side="left")
+
+                lbl_q = ctk.CTkLabel(
+                    inner_p,
+                    text=f" ×{qtd_v}",
+                    font=ctk.CTkFont(
+                        family="Segoe UI", size=13,
+                        overstrike=sem_est,
+                    ),
+                    text_color=("#94a3b8", "#475569") if sem_est else _FG_MUTED,
+                )
+                lbl_q.pack(side="left")
+
+                if not sem_est and vid_tam is not None:
+                    dica_tam = f"Vender Tam. {tam_k} ({qtd_v} disp.)"
+                    for w_p in (pill, inner_p, lbl_t, lbl_q):
+                        w_p.bind("<Button-1>", lambda e, v=vid_tam: self._on_sell(v))
+                        w_p.bind("<Enter>", lambda e, t=dica_tam: self._tooltip_show(e, t), add="+")
+                        w_p.bind("<Leave>", self._tooltip_hide, add="+")
         else:
-            # ── Fallback: produto sem variações de tamanho ainda ──────
             ctk.CTkLabel(
-                frame_miolo,
-                text="Grade:\nVazia",
-                font=ctk.CTkFont(family="Segoe UI", size=13),
+                frame_pills,
+                text="Sem grade cadastrada",
+                font=ctk.CTkFont(family="Segoe UI", size=12),
                 text_color=_FG_MUTED,
-                justify="left",
-                anchor="w",
-            ).grid(row=1, column=1, sticky="nw", padx=10, pady=(2, 5))
+            ).grid(row=0, column=0, sticky="w")
 
-        # ── 4. Rodapé: preços ────────────────────────────────────────────
-        frame_precos = ctk.CTkFrame(self, fg_color="transparent")
-        frame_precos.grid(row=4, column=0, sticky="ew", padx=14, pady=(6, 14))
-        frame_precos.grid_columnconfigure(0, weight=1)
-        frame_precos.grid_columnconfigure(1, weight=1)
+        # ── 5. Divisor sutil 2 ───────────────────────────────────────────
+        ctk.CTkFrame(self, height=1, fg_color=_BORDER, corner_radius=0).grid(
+            row=5, column=0, sticky="ew", padx=16, pady=(0, 10)
+        )
 
+        # ── 6. Rodapé: 5 Botões Minimalistas SÓ COM EMOJIS ───────────────
+        # Funções do PC: (1) Vender 🛒 | (2) Ver QR 📱 | (3) Imprimir 🖨️ | (4) Editar ✏️ | (5) Apagar 🗑️
+        frame_rodape = ctk.CTkFrame(self, fg_color="transparent")
+        frame_rodape.grid(row=6, column=0, sticky="ew", padx=16, pady=(0, 12))
+        frame_rodape.grid_columnconfigure(0, weight=1)
+
+        # Custo discreto à esquerda
+        custo_val = d.get("preco_custo", 0.0)
         ctk.CTkLabel(
-            frame_precos,
-            text=f"Custo\nR${d.get('preco_custo', 0.0):.2f}",
-            font=ctk.CTkFont(family="Segoe UI", size=13),
+            frame_rodape,
+            text=f"Custo R${custo_val:.0f}",
+            font=ctk.CTkFont(family="Segoe UI", size=11),
             text_color=_FG_MUTED,
-            anchor="center",
-            justify="center",
-        ).grid(row=0, column=0, sticky="ew")
+            anchor="w",
+        ).grid(row=0, column=0, sticky="w")
 
-        ctk.CTkLabel(
-            frame_precos,
-            text=f"Venda\nR${d.get('preco_venda', 0.0):.2f}",
-            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
-            text_color=("#059669", "#34D399"),
-            anchor="center",
-            justify="center",
-        ).grid(row=0, column=1, sticky="ew")
+        # Container dos 5 botões de emoji à direita (igual ao print do mobile)
+        frame_btns = ctk.CTkFrame(frame_rodape, fg_color="transparent")
+        frame_btns.grid(row=0, column=1, sticky="e")
 
-    # ── Hover e clique ───────────────────────────────────────────────────────
+        produto_id   = d.get("produto_id")
+
+        acoes_config = [
+            # (emoji, tooltip, fg_color, hover_color, border_color, command)
+            (
+                "🛒", "Vender no PDV",
+                ("#dcfce7", "#143325"), _ACCENT_GREEN, ("#86efac", "#1e4d38"),
+                lambda: self._on_sell(d),
+            ),
+            (
+                "📱", "Ver QR Code na Tela",
+                _BG_CARD_SUB, _ACCENT_BLUE, _BORDER,
+                lambda: self._on_ver_qr(d) if self._on_ver_qr else self._on_bar(d),
+            ),
+            (
+                "🖨️", "Imprimir Etiquetas",
+                _BG_CARD_SUB, _ACCENT_BLUE, _BORDER,
+                lambda: self._on_bar(d),
+            ),
+            (
+                "✏️", "Editar Produto",
+                _BG_CARD_SUB, _ACCENT_BLUE, _BORDER,
+                lambda: self._on_edit(produto_id),
+            ),
+            (
+                "🗑️", "Apagar Produto",
+                ("#fee2e2", "#2d161d"), _ACCENT_RED, ("#fca5a5", "#5c1d24"),
+                lambda: self._on_del(produto_id),
+            ),
+        ]
+
+        self._botoes_acao = []
+        for idx_b, (emoji, dica, fg_c, hov_c, brd_c, cmd) in enumerate(acoes_config):
+            btn = ctk.CTkButton(
+                frame_btns,
+                text=emoji,
+                width=36,
+                height=34,
+                corner_radius=8,
+                fg_color=fg_c,
+                hover_color=hov_c,
+                border_width=1,
+                border_color=brd_c,
+                font=ctk.CTkFont(size=15),
+                command=cmd,
+            )
+            btn.grid(row=0, column=idx_b, padx=(4, 0))
+            btn.bind("<Enter>", lambda e, t=dica: self._tooltip_show(e, t), add="+")
+            btn.bind("<Leave>", self._tooltip_hide, add="+")
+            self._botoes_acao.append(btn)
+
+    # ── Hover visual na borda do card (sem popup ao clicar no card) ──────────
 
     def _bind_hover_e_click(self):
-        """Aplica hover de borda e evento de clique recursivamente."""
+        """Aplica apenas efeito de destaque na borda ao passar o mouse (sem menu popup ao clicar)."""
         def _hover_on(e):
             self.configure(border_color=_BORDER_HOVER, border_width=2)
 
         def _hover_off(e):
             self.configure(border_color=_BORDER, border_width=1)
 
-        def _click(e):
-            self._abrir_menu_flutuante(e)
-
         for widget in [self, *self._todos_filhos(self)]:
             widget.bind("<Enter>", _hover_on, add="+")
             widget.bind("<Leave>", _hover_off, add="+")
-            widget.bind("<Button-1>", _click, add="+")
 
     def _todos_filhos(self, w) -> list:
         filhos = []
@@ -693,6 +714,10 @@ class TelaEstoque(ctk.CTkFrame):
     # BUSCA + RENDERIZAÇÃO COM PANDAS
     # ════════════════════════════════════════════════════════════════════
 
+    def atualizar_dados(self):
+        """Recarrega os cards da vitrine ao retornar para a aba de Estoque."""
+        self._renderizar_cards()
+
     def _on_busca_keyrelease(self, event=None):
         if self._debounce_busca_id:
             self.after_cancel(self._debounce_busca_id)
@@ -703,42 +728,35 @@ class TelaEstoque(ctk.CTkFrame):
 
     def _renderizar_cards(self):
         """
-        Busca todos os produtos agrupados por PAI via Pandas,
-        filtra pelo termo digitado e reconstrói o grid de cards.
+        Busca todos os produtos agrupados por PAI, aplica busca tokenizada AND
+        (modelo, marca, corte, tecido, cores e tamanhos) e reconstrói o grid de cards.
         """
         # Limpa a vitrine
         for w in self.frame_vitrine.winfo_children():
             w.destroy()
-        # self._cache_circles.clear() removido para cache global
 
         # Carrega dados agrupados
         dados_brutos = estoque_ctrl.listar_produtos_vitrine_grade()
+        termo = self._get_termo().lower()
 
-        # ── Filtragem Pandas ──────────────────────────────────────────
-        try:
-            import pandas as pd
-            df = pd.DataFrame(dados_brutos)
-            termo = self._get_termo()
-
-            if not df.empty and termo:
-                t = termo.lower()
-                mask = (
-                    df["tipo_peca"].str.lower().str.contains(t, na=False) |
-                    df["marca"].str.lower().str.contains(t, na=False)     |
-                    df["corte"].str.lower().str.contains(t, na=False)
-                )
-                df = df[mask]
-
-            produtos = df.to_dict("records") if not df.empty else []
-        except ImportError:
-            # Fallback sem Pandas (busca simples)
-            termo = self._get_termo().lower()
-            produtos = [
-                p for p in dados_brutos
-                if not termo or termo in (
-                    p.get("tipo_peca", "") + p.get("marca", "") + p.get("corte", "")
-                ).lower()
-            ]
+        if termo:
+            tokens = termo.split()
+            produtos = []
+            for p in dados_brutos:
+                cores_str = " ".join(c[0] for c in p.get("cores_lista", []))
+                tams_str  = " ".join(k for k, v in p.get("tamanhos_resumo", {}).items() if v > 0)
+                ficha = " ".join([
+                    p.get("tipo_peca", ""),
+                    p.get("marca", ""),
+                    p.get("corte", ""),
+                    p.get("tecido", ""),
+                    cores_str,
+                    tams_str,
+                ]).lower()
+                if all(tk in ficha for tk in tokens):
+                    produtos.append(p)
+        else:
+            produtos = dados_brutos
 
         total = len(produtos)
         self.lbl_contagem.configure(
@@ -757,9 +775,11 @@ class TelaEstoque(ctk.CTkFrame):
         # ── Grid responsivo de Cards ──────────────────────────────────
         largura_area = self.frame_vitrine.winfo_width()
         largura_area = max(largura_area, 800)
-        # Cada card ocupa _CARD_W + margens (~260px)
+        # Cada card ocupa _CARD_W + margens
         colunas = max(1, min(largura_area // (_CARD_W + 30), 6))
 
+        for c in range(7):
+            self.frame_vitrine.grid_columnconfigure(c, weight=0)
         for c in range(colunas):
             self.frame_vitrine.grid_columnconfigure(c, weight=1)
 
@@ -780,7 +800,7 @@ class TelaEstoque(ctk.CTkFrame):
             card.grid(row=row, column=col, padx=10, pady=10, sticky="n")
 
     # ════════════════════════════════════════════════════════════════════
-    # AÇÕES DO MENU FLUTUANTE
+    # AÇÕES DOS CARDS
     # ════════════════════════════════════════════════════════════════════
 
     def _acao_editar(self, produto_id: int):
@@ -811,15 +831,83 @@ class TelaEstoque(ctk.CTkFrame):
         else:
             messagebox.showerror("Erro", msg)
 
-    def _acao_vender(self, variacao_id: int | None):
-        """Navega para a tela de venda com a variação pré-selecionada."""
-        if variacao_id is None:
-            messagebox.showwarning(
-                "Sem Estoque",
-                "Este produto não possui variações com estoque disponível."
-            )
+    def _acao_vender(self, alvo):
+        """Navega para a tela de venda com a variação pré-selecionada.
+        Aceita um variacao_id (int) ao clicar direto na pílula de tamanho,
+        ou o dict do produto ao clicar no botão 🛒 (abre seletor se houver >1 tamanho).
+        """
+        if isinstance(alvo, int):
+            self.controller._ir_venda(variacao_id=alvo)
             return
-        self.controller._ir_venda(variacao_id=variacao_id)
+
+        if isinstance(alvo, dict):
+            tams_resumo  = alvo.get("tamanhos_resumo", {})
+            tams_vid_map = alvo.get("tamanhos_vid_map", {})
+            disponiveis  = [
+                (tam, qtd, tams_vid_map.get(tam))
+                for tam, qtd in sorted(
+                    tams_resumo.items(),
+                    key=lambda x: _ORDEM_TAMANHOS.get(x[0].upper(), 99),
+                )
+                if qtd > 0 and tams_vid_map.get(tam) is not None
+            ]
+            if not disponiveis:
+                messagebox.showwarning(
+                    "Sem Estoque",
+                    "Este produto não possui variações com estoque disponível.",
+                )
+                return
+            if len(disponiveis) == 1:
+                self.controller._ir_venda(variacao_id=disponiveis[0][2])
+                return
+
+            # Mais de um tamanho disponível: abre seletor rápido
+            win = ctk.CTkToplevel(self)
+            win.title("Escolher Tamanho")
+            win.geometry("320x260")
+            win.resizable(False, False)
+            win.attributes("-topmost", True)
+            win.configure(fg_color="#0f172a")
+            win.update_idletasks()
+            x = self.winfo_rootx() + (self.winfo_width() - 320) // 2
+            y = self.winfo_rooty() + (self.winfo_height() - 260) // 2
+            win.geometry(f"+{max(20, x)}+{max(20, y)}")
+
+            ctk.CTkLabel(
+                win,
+                text=f"🛒  {alvo.get('tipo_peca', 'Produto')}",
+                font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
+                text_color="#f8fafc",
+            ).pack(pady=(16, 2))
+            ctk.CTkLabel(
+                win,
+                text="Qual tamanho deseja enviar para a Venda?",
+                font=ctk.CTkFont(family="Segoe UI", size=12),
+                text_color="#94a3b8",
+            ).pack(pady=(0, 12))
+
+            frame_b = ctk.CTkFrame(win, fg_color="transparent")
+            frame_b.pack(padx=16, pady=4)
+            for idx_b, (tam_k, qtd_v, vid_k) in enumerate(disponiveis):
+                ctk.CTkButton(
+                    frame_b,
+                    text=f"{tam_k}  (×{qtd_v})",
+                    width=82,
+                    height=38,
+                    corner_radius=8,
+                    fg_color="#1e293b",
+                    hover_color="#22c55e",
+                    border_width=1,
+                    border_color="#334155",
+                    font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+                    command=lambda v=vid_k: (win.destroy(), self.controller._ir_venda(variacao_id=v)),
+                ).grid(row=idx_b // 3, column=idx_b % 3, padx=5, pady=5)
+            return
+
+        messagebox.showwarning(
+            "Sem Estoque",
+            "Este produto não possui variações com estoque disponível.",
+        )
 
     def _acao_ver_qrcode(self, dados_produto: dict):
         """
@@ -1172,7 +1260,11 @@ class TelaEstoque(ctk.CTkFrame):
                         quantidade=qtd,
                     )
                     if caminho:
-                        ok, msg_imp = imprimir_etiqueta(caminho)
+                        ok, msg_imp = True, ""
+                        for _ in range(qtd):
+                            ok, msg_imp = imprimir_etiqueta(caminho)
+                            if not ok:
+                                break
                         if ok:
                             enviadas += qtd
                         else:

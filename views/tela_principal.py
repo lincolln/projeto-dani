@@ -46,23 +46,23 @@ NAV_BTN_H      = 44
 LOGO_SIZE      = (70, 70)
 LOGO_FILENAME  = "logo_kanemberg.png"   # nome oficial e definitivo
 
-# ── Paletas (claro, escuro) ──────────────────────────────────────────────────
+# ── Paletas (claro, escuro — Tema Slate Dark Mobile) ────────────────────────
 DARK = {
-    "bg_window":      "#0F1117",
-    "bg_sidebar":     "#16191F",
-    "bg_hover":       "#22273A",
-    "accent":         "#E1B12C",    # ouro
-    "accent2":        "#1E3A5F",    # azul executivo (fundo botão ativo)
-    "fg_primary":     "#F0F2F8",
-    "fg_muted":       "#8A8FA8",
-    "divider":        "#22273A",
-    "btn_active_fg":  "#E1B12C",
+    "bg_window":      "#0f172a",
+    "bg_sidebar":     "#0b1120",
+    "bg_hover":       "#1e293b",
+    "accent":         "#3b82f6",    # azul primário mobile
+    "accent2":        "#1e293b",    # slate card (fundo botão ativo)
+    "fg_primary":     "#f8fafc",
+    "fg_muted":       "#94a3b8",
+    "divider":        "#334155",
+    "btn_active_fg":  "#60a5fa",
 }
 LIGHT = {
     "bg_window":      "#F0F2F8",
     "bg_sidebar":     "#FFFFFF",
     "bg_hover":       "#E8ECF4",
-    "accent":         "#1B365D",
+    "accent":         "#2563eb",
     "accent2":        "#1B365D",
     "fg_primary":     "#1A1D2E",
     "fg_muted":       "#6B7280",
@@ -451,26 +451,36 @@ class TelaPrincipal(ctk.CTk):
     # ════════════════════════════════════════════════════════════════
 
     def mostrar_tela(self, nome_tela: str, **kwargs):
-        """Destrói o frame atual e instancia a tela solicitada."""
+        """Alterna para a tela solicitada preservando cache e limpando instâncias temporárias."""
         if self._frame_atual:
             try:
-                if hasattr(self._frame_atual, "grid_remove"):
-                    self._frame_atual.grid_remove()
+                eh_cacheada = self._frame_atual in self._cache_telas.values()
+                if eh_cacheada:
+                    if hasattr(self._frame_atual, "grid_remove"):
+                        self._frame_atual.grid_remove()
+                    else:
+                        self._frame_atual.pack_forget()
                 else:
-                    self._frame_atual.pack_forget()
+                    # Tela temporária não cacheada (ex: edição de produto) → destrói sem vazar RAM
+                    self._frame_atual.destroy()
             except Exception:
                 pass
             self._frame_atual = None
 
         self._destacar_menu(nome_tela)
 
-        if not kwargs and nome_tela in self._cache_telas:
+        kwargs_validos = {k: v for k, v in kwargs.items() if v is not None}
+
+        if not kwargs_validos and nome_tela in self._cache_telas:
             frame = self._cache_telas[nome_tela]
             if hasattr(frame, "atualizar_dados"):
-                frame.atualizar_dados()
+                try:
+                    frame.atualizar_dados()
+                except Exception as exc:
+                    print(f"[Aviso] Falha ao atualizar dados de '{nome_tela}': {exc}")
         else:
-            frame = self._criar_tela(nome_tela, **kwargs)
-            if not kwargs:
+            frame = self._criar_tela(nome_tela, **kwargs_validos)
+            if not kwargs_validos and frame is not None:
                 self._cache_telas[nome_tela] = frame
 
         if frame:
@@ -749,10 +759,20 @@ class TelaPrincipal(ctk.CTk):
         self.mostrar_tela("estoque")
 
     def _ir_cadastro(self, produto_id=None):
+        # Sempre abre formulário limpo (ou carregado com produto_id de edição)
+        antigo = self._cache_telas.pop("cadastro", None)
+        if antigo and antigo is not self._frame_atual:
+            try:
+                antigo.destroy()
+            except Exception:
+                pass
         self.mostrar_tela("cadastro", produto_id=produto_id)
 
     def _ir_venda(self, variacao_id=None):
-        self.mostrar_tela("venda", variacao_id_inicial=variacao_id)
+        # Preserva o carrinho existente ao navegar para o PDV ou clicar em 🛒 no Estoque
+        self.mostrar_tela("venda")
+        if variacao_id is not None and self._frame_atual and hasattr(self._frame_atual, "adicionar_via_bipe"):
+            self.after(80, lambda vid=variacao_id: self._frame_atual.adicionar_via_bipe(vid))
 
     def _ir_fiado(self):
         self.mostrar_tela("fiado")

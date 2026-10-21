@@ -3,4 +3,10 @@ build/
 backups_kanemberg/
 *.zip
 *.db
+*.db-shm
+*.db-wal
 *.pyc
+.env
+cloudflared.exe
+_temp_logo.ico
+config.yml

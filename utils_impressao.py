@@ -271,6 +271,12 @@ def gerar_qrcode_preview(conteudo: str, tamanho_px: int = 250) -> Image.Image:
 # FUNÇÃO PRINCIPAL — GERAR ETIQUETA COM QR CODE
 # ════════════════════════════════════════════════════════════════════════════
 
+def _nome_arquivo_seguro(texto: str) -> str:
+    """Troca caracteres inválidos em nomes de arquivo (/ \\ : * ? " < > | espaços) por '-'."""
+    import re
+    return re.sub(r'[\\/:*?"<>|\s]+', "-", str(texto)).strip("-.") or "x"
+
+
 def gerar_etiqueta(
     codigo_barras: str,
     nome_produto:  str,
@@ -371,21 +377,15 @@ def gerar_etiqueta(
     draw.text((dir_x, qr_y + 148), preco_text, fill=_COR_PRECO, font=font_preco)
 
     # ── Monta a folha final ───────────────────────────────────────────────
-    if quantidade <= 1:
-        folha = etq
-        nome_arquivo = f"etiqueta_{codigo_barras}_{tamanho}.png"
-        caminho = os.path.join(diretorio, nome_arquivo)
-        folha.save(caminho, "PNG", dpi=(_DPI, _DPI))
-        return caminho
-    else:
-        ultimo_caminho = None
-        for i in range(1, quantidade + 1):
-            nome_arquivo = f"etiqueta_{codigo_barras}_{tamanho}_{i}.png"
-            caminho = os.path.join(diretorio, nome_arquivo)
-            etq.save(caminho, "PNG", dpi=(_DPI, _DPI))
-            imprimir_etiqueta(caminho)
-            ultimo_caminho = caminho
-        return ultimo_caminho
+    # Apenas gera UM PNG (a mesma imagem serve para todas as cópias).
+    # Nunca imprime: quem chama decide se imprime e quantas vezes
+    # (``quantidade`` é mantido apenas por compatibilidade).
+    cod_seguro = _nome_arquivo_seguro(codigo_barras)
+    tam_seguro = _nome_arquivo_seguro(tamanho)
+    nome_arquivo = f"etiqueta_{cod_seguro}_{tam_seguro}.png"
+    caminho = os.path.join(diretorio, nome_arquivo)
+    etq.save(caminho, "PNG", dpi=(_DPI, _DPI))
+    return caminho
 
 
 # ════════════════════════════════════════════════════════════════════════════
