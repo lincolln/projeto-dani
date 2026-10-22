@@ -1,0 +1,9 @@
+customtkinter>=5.2.0
+Pillow>=10.0.0
+qrcode[pil]>=7.4.2
+python-barcode>=0.15.1
+matplotlib>=3.8.0
+pandas>=2.1.0
+fastapi>=0.110.0
+uvicorn>=0.29.0
+pydantic>=2.6.0
