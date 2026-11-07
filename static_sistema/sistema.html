@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kanemberg — Sistema de Gestão v2</title>
+  <link rel="icon" type="image/png" href="/logo_kanemberg.png" />
+  <link rel="stylesheet" href="/static_sistema/sistema.css?v=12" />
+</head>
+<body>
+  <!-- Background Hairline Isométrico em HTML5 Canvas -->
+  <canvas id="kanemberg-hairline-canvas" aria-hidden="true"></canvas>
+
+  <!-- Layout Widescreen: Sidebar Fixa (240px) + Área Principal Elástica -->
+  <div class="sistema-layout">
+    <!-- ===================================================================
+         SIDEBAR FIXA À ESQUERDA
+         =================================================================== -->
+    <aside class="sidebar">
+      <div class="sidebar-topo">
+        <div class="logo-container">
+          <img
+            id="sidebar-logo-img"
+            class="logo-img"
+            src="/logo_kanemberg.png"
+            alt="Kanemberg Multimarcas"
+            onerror="this.classList.add('hidden'); document.getElementById('sidebar-logo-fallback').classList.remove('hidden');"
+          />
+          <span
+            id="sidebar-logo-fallback"
+            class="logo-fallback hidden"
+            style="font-size: 24px; font-weight: 900; letter-spacing: 0.08em; color: #3b82f6;"
+          >KNB</span>
+        </div>
+        <h1 class="brand-title">KANEMBERG</h1>
+        <p class="brand-subtitle">Gestão Comercial v2</p>
+
+        <div class="theme-switch-row">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+          </svg>
+          <label class="switch-control" for="toggle-modo-escuro" title="Alternar tema escuro/claro">
+            <input type="checkbox" id="toggle-modo-escuro" checked />
+            <span class="switch-slider"></span>
+          </label>
+          <span id="label-modo-tema" class="theme-label">Modo Escuro</span>
+        </div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <nav class="sidebar-nav" aria-label="Menu Principal">
+        <button type="button" class="nav-item ativo" data-view="estoque">
+          <span class="nav-emoji" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+              <path d="m3.3 7 8.7 5 8.7-5" />
+              <path d="M12 22V12" />
+            </svg>
+          </span>
+          <span class="nav-text">Estoque</span>
+        </button>
+
+        <button type="button" class="nav-item" data-view="cadastro">
+          <span class="nav-emoji" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2" />
+              <path d="M8 12h8" />
+              <path d="M12 8v8" />
+            </svg>
+          </span>
+          <span class="nav-text">Cadastrar</span>
+        </button>
+
+        <button type="button" class="nav-item" data-view="venda">
+          <span class="nav-emoji" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+              <path d="M3 6h18" />
+              <path d="M16 10a4 4 0 0 1-8 0" />
+            </svg>
+          </span>
+          <span class="nav-text">Nova Venda</span>
+          <span id="badge-fila-venda" class="nav-badge hidden">0</span>
+        </button>
+
+        <button type="button" class="nav-item" data-view="fiado">
+          <span class="nav-emoji" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </span>
+          <span class="nav-text">Fiado</span>
+        </button>
+
+        <button type="button" class="nav-item" data-view="dashboard">
+          <span class="nav-emoji" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18" />
+              <path d="M18 17V9" />
+              <path d="M13 17V5" />
+              <path d="M8 17v-3" />
+            </svg>
+          </span>
+          <span class="nav-text">Dashboard</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-divider"></div>
+
+      <footer class="sidebar-footer">
+        <button type="button" id="btn-conexao-servidor" class="btn-conexao-servidor">
+          <span id="conexao-dot" class="conexao-dot on" aria-hidden="true"></span>
+          <span class="conexao-texto">Conexão &amp; Servidor</span>
+          <span id="conexao-badge" class="conexao-badge on">ON</span>
+        </button>
+        <div>Kanemberg v2 · Sistema Local</div>
+      </footer>
+    </aside>
+
+    <!-- ===================================================================
+         ÁREA PRINCIPAL DE CONTEÚDO (5 VIEWS SPA)
+         =================================================================== -->
+    <main id="main-scroll-area" class="main-area">
+      <!-- =================================================================
+           VIEW 1: VITRINE DE ESTOQUE (#view-estoque)
+           ================================================================= -->
+      <section id="view-estoque" class="sistema-view ativa">
+        <header class="vitrine-header">
+          <div class="vitrine-titulo-wrap">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+              <path d="m3.3 7 8.7 5 8.7-5" />
+              <path d="M12 22V12" />
+            </svg>
+            <h1 class="vitrine-titulo">Vitrine de Estoque</h1>
+          </div>
+
+          <button type="button" id="btn-ir-cadastro-topo" class="btn-cadastrar-peca">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
+            </svg>
+            <span>Cadastrar Nova Peça</span>
+          </button>
+        </header>
+
+        <div class="vitrine-search-bar">
+          <span class="search-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </span>
+          <input
+            type="search"
+            id="input-busca-vitrine"
+            placeholder="Buscar por modelo, marca, cor, tecido, tamanho ou código KNB..."
+            autocomplete="off"
+          />
+          <button type="button" id="btn-limpar-busca" class="btn-clear-search hidden" title="Limpar busca" aria-label="Limpar busca">&times;</button>
+        </div>
+
+        <div class="vitrine-toolbar-grupos">
+          <div id="barra-grupos" class="grupos-pills">
+            <button type="button" class="pill-grupo ativo" data-grupo="todos">Todos</button>
+            <button type="button" class="pill-grupo" data-grupo="cima">Cima</button>
+            <button type="button" class="pill-grupo" data-grupo="baixo">Baixo</button>
+            <button type="button" class="pill-grupo" data-grupo="calcados">Calçados</button>
+            <button type="button" class="pill-grupo" data-grupo="acessorios">Acessórios</button>
+            <button type="button" class="pill-grupo" data-grupo="perfumaria">Perfumes</button>
+          </div>
+          <span id="contador-modelos" class="contador-modelos">0 modelos</span>
+        </div>
+
+        <div id="grid-vitrine" class="grid-vitrine"></div>
+      </section>
+
+      <!-- =================================================================
+           VIEW 2: CADASTRAR — CADASTRO CAMALEÃO v6.0 (#view-cadastro)
+           ================================================================= -->
+      <section id="view-cadastro" class="sistema-view hidden">
+        <header class="vitrine-header">
+          <div>
+            <div class="vitrine-titulo-wrap">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="18" height="18" x="3" y="3" rx="2" />
+                <path d="M8 12h8" />
+                <path d="M12 8v8" />
+              </svg>
+              <h1 class="vitrine-titulo">Cadastrar Produto</h1>
+            </div>
+            <p class="camaleao-subtitulo-header">
+              Formulário adaptativo por Grande Grupo com cálculo de margem ao vivo e geração de códigos QR exclusivos
+            </p>
+          </div>
+
+          <div class="camaleao-header-actions">
+            <button type="button" id="btn-resetar-camaleao" class="btn-secundario-sistema">
+              Limpar Formulário
+            </button>
+            <button type="button" class="btn-secundario-sistema" data-ir-view="estoque">
+              Voltar ao Estoque
+            </button>
+          </div>
+        </header>
+
+        <!-- Banner de confirmação pós-salvamento -->
+        <div id="banner-sucesso-cadastro" class="banner-sucesso-cadastro hidden">
+          <div class="banner-sucesso-info">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <path d="m9 11 3 3L22 4" />
+            </svg>
+            <div>
+              <strong id="titulo-sucesso-cadastro">Produto cadastrado com sucesso!</strong>
+              <p id="detalhe-sucesso-cadastro"></p>
+            </div>
+          </div>
+          <div class="banner-sucesso-acoes">
+            <button type="button" id="btn-sucesso-ver-vitrine" class="btn-ver-na-vitrine">
+              Ver na Vitrine
+            </button>
+            <button type="button" id="btn-fechar-banner-sucesso" class="btn-fechar-banner" title="Fechar">&times;</button>
+          </div>
+        </div>
+
+        <!-- Etapa 1: Seletor dos 5 Grandes Grupos -->
+        <div class="camaleao-grupos-box">
+          <div class="camaleao-grupos-label-row">
+            <span class="camaleao-step-badge">ETAPA 1</span>
+            <h2>Selecione o Grande Grupo do Produto</h2>
+          </div>
+
+          <div id="seletor-grupos-camaleao" class="camaleao-grupos-grid">
+            <button type="button" class="card-grupo-camaleao" data-camaleao-grupo="cima" style="--cor-camaleao: #3b82f6;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23Z" />
+              </svg>
+              <div class="cg-textos">
+                <strong>Parte de Cima</strong>
+                <small>Camisetas, camisas, polos, casacos</small>
+              </div>
+              <span class="cg-indicador"></span>
+            </button>
+
+            <button type="button" class="card-grupo-camaleao" data-camaleao-grupo="baixo" style="--cor-camaleao: #3b82f6;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 3h12l1 18h-5l-2-10-2 10H5L6 3Z" />
+              </svg>
+              <div class="cg-textos">
+                <strong>Parte de Baixo / Praia</strong>
+                <small>Calças, bermudas, shorts, sungas</small>
+              </div>
+              <span class="cg-indicador"></span>
+            </button>
+
+            <button type="button" class="card-grupo-camaleao" data-camaleao-grupo="calcados" style="--cor-camaleao: #3b82f6;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 16v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2c0-2-2-3-5-4l-4-5H8L5 12c-1.5.7-2 2-2 4Z" />
+              </svg>
+              <div class="cg-textos">
+                <strong>Calçados / Meias</strong>
+                <small>Chinelos, tênis, meias, sandálias</small>
+              </div>
+              <span class="cg-indicador"></span>
+            </button>
+
+            <button type="button" class="card-grupo-camaleao" data-camaleao-grupo="acessorios" style="--cor-camaleao: #3b82f6;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="6" />
+                <polyline points="12 10 12 12 13 13" />
+                <path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05" />
+                <path d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05" />
+              </svg>
+              <div class="cg-textos">
+                <strong>Acessórios</strong>
+                <small>Bonés, óculos, relógios, cintos</small>
+              </div>
+              <span class="cg-indicador"></span>
+            </button>
+
+            <button type="button" class="card-grupo-camaleao" data-camaleao-grupo="perfumaria" style="--cor-camaleao: #3b82f6;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 3h6v3H9z" />
+                <path d="M10 6h4v2h-4z" />
+                <rect x="6" y="8" width="12" height="13" rx="3" />
+                <path d="M10 14h4" />
+              </svg>
+              <div class="cg-textos">
+                <strong>Perfumaria</strong>
+                <small>Perfumes árabes, importados e nacionais</small>
+              </div>
+              <span class="cg-indicador"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Estado inicial ocultando o formulário até selecionar o Grande Grupo -->
+        <div id="banner-aguardando-grupo" class="camaleao-aguardando-card">
+          <div style="margin-bottom: 12px; color: #64748b;">
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+            </svg>
+          </div>
+          <h3>Selecione um Grande Grupo acima para iniciar</h3>
+          <p>
+            Os campos de tipo de peça, marcas sugeridas, corte, tecido, paleta de cores e grade de numeração se ajustam automaticamente à categoria escolhida.
+          </p>
+        </div>
+
+        <!-- Formulário Camaleão Principal -->
+        <form id="form-camaleao-container" class="form-camaleao-wrapper hidden" autocomplete="off">
+          <div class="camaleao-top-banner">
+            <div class="camaleao-top-left">
+              <span id="camaleao-badge-ativo">CATEGORIA</span>
+              <span id="camaleao-regra-ativa" class="camaleao-regra-hint">Preencha os atributos da peça abaixo</span>
+            </div>
+            <div class="camaleao-preview-pill">
+              <small>Prévia do Modelo:</small>
+              <strong id="camaleao-preview-modelo">Selecione o tipo de peça</strong>
+            </div>
+          </div>
+
+          <div class="camaleao-grid-2col">
+            <!-- Coluna Esquerda: Identificação, Marca, Corte e Tecido -->
+            <div class="camaleao-coluna">
+              <!-- 1. Tipo de Peça & Complemento -->
+              <div class="camaleao-card-secao">
+                <div class="camaleao-secao-header">
+                  <span class="camaleao-secao-titulo">1. Tipo de Peça &amp; Identificação</span>
+                  <span class="camaleao-tag-info">Obrigatório</span>
+                </div>
+                <div id="chips-tipo-peca" class="camaleao-chips-grid"></div>
+                <div class="camaleao-field-complemento">
+                  <label id="label-detalhe-modelo" for="input-detalhe-modelo">Complemento do Modelo / Linha (opcional)</label>
+                  <input
+                    type="text"
+                    id="input-detalhe-modelo"
+                    placeholder="Ex: Básica Pima, Gola Polo Clássica, Sauvage..."
+                  />
+                </div>
+              </div>
+
+              <!-- 2. Marca -->
+              <div id="bloco-camaleao-marca" class="camaleao-card-secao">
+                <div class="camaleao-secao-header">
+                  <span class="camaleao-secao-titulo">2. Marca</span>
+                  <span id="marca-selecionada-label" class="camaleao-valor-atual">Sem Marca</span>
+                </div>
+                <div id="chips-marca" class="camaleao-chips-grid"></div>
+                <div id="box-outra-marca" class="camaleao-outro-input-row hidden">
+                  <input type="text" id="input-outra-marca" placeholder="Digite o nome da nova marca..." />
+                  <button type="button" id="btn-confirmar-outra-marca" class="btn-confirmar-outro">Adicionar</button>
+                </div>
+              </div>
+
+              <!-- 3. Corte / Caimento / Estilo -->
+              <div id="bloco-camaleao-corte" class="camaleao-card-secao">
+                <div class="camaleao-secao-header">
+                  <span id="label-camaleao-corte" class="camaleao-secao-titulo">3. Corte / Caimento</span>
+                  <span id="corte-selecionado-label" class="camaleao-valor-atual">N/A</span>
+                </div>
+                <div id="chips-corte" class="camaleao-chips-grid"></div>
+                <div id="box-outro-corte" class="camaleao-outro-input-row hidden">
+                  <input type="text" id="input-outro-corte" placeholder="Digite o novo corte / estilo..." />
+                  <button type="button" id="btn-confirmar-outro-corte" class="btn-confirmar-outro">Adicionar</button>
+                </div>
+              </div>
+
+              <!-- 4. Tecido / Material -->
+              <div id="bloco-camaleao-tecido" class="camaleao-card-secao">
+                <div class="camaleao-secao-header">
+                  <span id="label-camaleao-tecido" class="camaleao-secao-titulo">4. Tecido / Material</span>
+                  <span id="tecido-selecionado-label" class="camaleao-valor-atual">N/A</span>
+                </div>
+                <div id="chips-tecido" class="camaleao-chips-grid"></div>
+                <div id="box-outro-tecido" class="camaleao-outro-input-row hidden">
+                  <input type="text" id="input-outro-tecido" placeholder="Digite o novo tecido / material..." />
+                  <button type="button" id="btn-confirmar-outro-tecido" class="btn-confirmar-outro">Adicionar</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Coluna Direita: Precificação, Cores, Grade e Salvamento -->
+            <div class="camaleao-coluna">
+              <!-- 5. Precificação & Lucro ao Vivo -->
+              <div class="camaleao-card-secao">
+                <div class="camaleao-secao-header">
+                  <span class="camaleao-secao-titulo">5. Precificação &amp; Margem ao Vivo</span>
+                  <span id="vivo-status-badge" class="badge-margem-status neutro">Informe os preços</span>
+                </div>
+
+                <div class="camaleao-precos-grid">
+                  <label class="form-field">
+                    <span>Preço de Custo (R$)</span>
+                    <input type="number" id="camaleao-preco-custo" step="0.01" min="0" placeholder="0,00" />
+                  </label>
+                  <label class="form-field">
+                    <span>Preço de Venda (R$) *</span>
+                    <input type="number" id="camaleao-preco-venda" step="0.01" min="0.01" placeholder="0,00" required />
+                  </label>
+                </div>
+
+                <div id="card-lucro-vivo" class="card-lucro-vivo">
+                  <div class="lucro-vivo-item">
+                    <small>Lucro / Peça</small>
+                    <strong id="vivo-lucro-rs">R$ 0,00</strong>
+                  </div>
+                  <div class="lucro-vivo-sep"></div>
+                  <div class="lucro-vivo-item">
+                    <small>Margem Líquida</small>
+                    <strong id="vivo-margem-pct">0,0%</strong>
+                  </div>
+                  <div class="lucro-vivo-sep"></div>
+                  <div class="lucro-vivo-item">
+                    <small>Markup</small>
+                    <strong id="vivo-markup-pct">0%</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 6. Cores Disponíveis -->
+              <div id="bloco-camaleao-cores" class="camaleao-card-secao">
+                <div class="camaleao-secao-header">
+                  <span class="camaleao-secao-titulo">6. Cores Disponíveis</span>
+                  <div class="camaleao-header-inline-btns">
+                    <span id="resumo-cores-selecionadas" class="camaleao-valor-atual">Padrão</span>
+                    <button type="button" id="btn-limpar-cores-camaleao" class="btn-mini-acao perigo hidden">Limpar</button>
+                  </div>
+                </div>
+
+                <div id="aviso-cor-perfumaria" class="camaleao-lock-banner dourado hidden">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  <div>
+                    <strong>Perfumaria — Classificação por Volume</strong>
+                    <p>Fragrâncias são controladas diretamente por mililitros (ml), sem variação de cor de tecido.</p>
+                  </div>
+                </div>
+
+                <div id="conteudo-paleta-cores">
+                  <p class="camaleao-instrucao-curta">Selecione as cores presentes no lote (opcional):</p>
+                  <div id="paleta-cores-camaleao" class="paleta-cores-grid"></div>
+                  <div class="camaleao-nova-cor-bar">
+                    <input type="color" id="input-nova-cor-hex" value="#3b82f6" title="Selecionar cor" />
+                    <input type="text" id="input-nova-cor-nome" placeholder="Nova cor personalizada..." />
+                    <button type="button" id="btn-add-nova-cor-camaleao" class="btn-mini-acao">+ Adicionar Cor</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 7. Grade de Tamanhos & Quantidades -->
+              <div id="bloco-camaleao-grade" class="camaleao-card-secao">
+                <div class="camaleao-secao-header">
+                  <span id="label-camaleao-grade" class="camaleao-secao-titulo">7. Grade de Tamanhos &amp; Quantidades</span>
+                  <div class="camaleao-header-inline-btns">
+                    <button type="button" id="btn-grade-mais-um" class="btn-mini-acao">+1 em Todos</button>
+                    <button type="button" id="btn-grade-zerar" class="btn-mini-acao perigo">Zerar</button>
+                  </div>
+                </div>
+
+                <div id="aviso-tamanho-unico" class="camaleao-lock-banner carmesim hidden">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" />
+                    <path d="M7 7h.01" />
+                  </svg>
+                  <div>
+                    <strong>Tamanho ÚNICO Automático</strong>
+                    <p>Informe abaixo a quantidade total de peças disponíveis em estoque.</p>
+                  </div>
+                </div>
+
+                <div id="grid-tamanhos-camaleao" class="grid-tamanhos-camaleao"></div>
+              </div>
+
+              <!-- 8. Resumo Pré-Salvamento e Botão Principal -->
+              <div class="camaleao-card-secao camaleao-resumo-final-card">
+                <div class="resumo-pre-salvamento-grid">
+                  <div class="resumo-pre-item">
+                    <small>Tamanhos Ativos</small>
+                    <strong id="resumo-qtd-tamanhos">0</strong>
+                  </div>
+                  <div class="resumo-pre-item destaque">
+                    <small>Total de Peças</small>
+                    <strong id="resumo-total-pecas">0 un.</strong>
+                  </div>
+                  <div class="resumo-pre-item">
+                    <small>Custo do Lote</small>
+                    <strong id="resumo-custo-total">R$ 0,00</strong>
+                  </div>
+                  <div class="resumo-pre-item destaque">
+                    <small>Valor Potencial</small>
+                    <strong id="resumo-venda-total">R$ 0,00</strong>
+                  </div>
+                </div>
+
+                <div class="camaleao-nota-qrcode">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect width="5" height="5" x="3" y="3" rx="1" />
+                    <rect width="5" height="5" x="16" y="3" rx="1" />
+                    <rect width="5" height="5" x="3" y="16" rx="1" />
+                    <path d="M21 16h-3a2 2 0 0 0-2 2v3" />
+                    <path d="M21 21v.01" />
+                    <path d="M12 7v3a2 2 0 0 1-2 2H7" />
+                  </svg>
+                  <span>Códigos exclusivos <code>KNB...</code> gerados automaticamente para cada tamanho com estoque.</span>
+                </div>
+
+                <button type="submit" id="btn-salvar-camaleao" class="btn-salvar-camaleao">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                  <span>Salvar Produto no Estoque</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <!-- =================================================================
+           VIEW 3: NOVA VENDA — PDV DE BALCÃO WIDESCREEN (#view-venda)
+           ================================================================= -->
+      <section id="view-venda" class="sistema-view hidden">
+        <header class="vitrine-header pdv-header-bar">
+          <div>
+            <div class="vitrine-titulo-wrap">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                <path d="M3 6h18" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+              <h1 class="vitrine-titulo">PDV — Nova Venda</h1>
+            </div>
+            <p class="camaleao-subtitulo-header">
+              Atalhos de balcão: <kbd>F2</kbd> foca no leitor QR / busca · <kbd>F12</kbd> finaliza a venda
+            </p>
+          </div>
+
+          <div class="pdv-header-kpis">
+            <div class="pdv-mini-kpi">
+              <small>Vendido Hoje</small>
+              <strong id="pdv-kpi-vendas-hoje">R$ 0,00</strong>
+            </div>
+            <div class="pdv-mini-kpi">
+              <small>Saídas Hoje</small>
+              <strong id="pdv-kpi-pecas-hoje">0 vendas</strong>
+            </div>
+            <button type="button" id="btn-abrir-historico-vendas" class="btn-secundario-sistema btn-historico-vendas">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M12 7v5l4 2" />
+              </svg>
+              <span>Histórico / Estorno</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="pdv-widescreen-grid">
+          <!-- Coluna Esquerda (60%): Leitor QR USB, Busca e Catálogo Rápido -->
+          <div class="pdv-col-catalogo">
+            <div class="pdv-bipe-search-box">
+              <div class="pdv-bipe-input-wrap">
+                <span class="pdv-bipe-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                    <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                    <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                    <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                    <path d="M7 12h10" />
+                  </svg>
+                </span>
+                <input
+                  type="search"
+                  id="input-bipe-pdv"
+                  placeholder="Bipe o código QR (KNB...) ou busque por modelo, marca ou tamanho..."
+                  autocomplete="off"
+                />
+                <span class="pdv-kbd-hint">F2</span>
+                <button type="button" id="btn-limpar-busca-pdv" class="btn-clear-search hidden" style="position: absolute; right: 8px;" title="Limpar">&times;</button>
+              </div>
+              <button type="button" id="btn-bipar-manual-pdv" class="btn-bipar-action">Adicionar</button>
+            </div>
+
+            <div class="pdv-toolbar-grupos">
+              <div id="pdv-barra-grupos" class="grupos-pills pdv-grupos-pills">
+                <button type="button" class="pill-grupo ativo" data-pdv-grupo="todos">Todos</button>
+                <button type="button" class="pill-grupo" data-pdv-grupo="cima">Cima</button>
+                <button type="button" class="pill-grupo" data-pdv-grupo="baixo">Baixo</button>
+                <button type="button" class="pill-grupo" data-pdv-grupo="calcados">Calçados</button>
+                <button type="button" class="pill-grupo" data-pdv-grupo="acessorios">Acessórios</button>
+                <button type="button" class="pill-grupo" data-pdv-grupo="perfumaria">Perfumes</button>
+              </div>
+              <span id="pdv-contador-catalogo" class="pdv-contador-catalogo">0 disponíveis</span>
+            </div>
+
+            <div id="grid-catalogo-pdv" class="grid-catalogo-pdv"></div>
+          </div>
+
+          <!-- Coluna Direita (40%): Cupom / Carrinho, Desconto e Pagamento -->
+          <div class="pdv-col-carrinho">
+            <div class="pdv-cart-header">
+              <div class="pdv-cart-title-row">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="8" cy="21" r="1" />
+                  <circle cx="19" cy="21" r="1" />
+                  <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+                </svg>
+                <h2>Cupom Atual</h2>
+                <span id="pdv-badge-qtd-carrinho" class="pdv-cart-badge">0 itens</span>
+              </div>
+              <button type="button" id="btn-pdv-limpar-carrinho" class="btn-limpar-carrinho-pdv">Limpar</button>
+            </div>
+
+            <div id="lista-itens-carrinho-pdv" class="pdv-cart-items-scroll">
+              <div class="pdv-cart-vazio">
+                <strong>Cupom vazio</strong>
+                <p>Bipe uma etiqueta <code>KNB...</code> ou clique em um tamanho disponível no catálogo ao lado.</p>
+              </div>
+            </div>
+
+            <div class="pdv-checkout-panel">
+              <div class="pdv-resumo-linhas">
+                <div class="pdv-linha-valor">
+                  <span>Subtotal Bruto</span>
+                  <strong id="pdv-subtotal-bruto">R$ 0,00</strong>
+                </div>
+              </div>
+
+              <div class="pdv-desconto-box">
+                <div class="pdv-desconto-top">
+                  <span class="pdv-desconto-label">Desconto</span>
+                  <div class="pdv-desconto-atalhos">
+                    <button type="button" class="btn-desc-rapido" data-desc-pct="5">5%</button>
+                    <button type="button" class="btn-desc-rapido" data-desc-pct="10">10%</button>
+                    <button type="button" class="btn-desc-rapido" data-desc-pct="15">15%</button>
+                    <button type="button" class="btn-desc-rapido" data-desc-pct="0">Zerar</button>
+                  </div>
+                </div>
+                <div class="pdv-desconto-input-row">
+                  <div class="pdv-toggle-tipo-desc">
+                    <button type="button" id="btn-desc-modo-rs" class="btn-modo-desc ativo">R$</button>
+                    <button type="button" id="btn-desc-modo-pct" class="btn-modo-desc">%</button>
+                  </div>
+                  <input type="number" id="input-pdv-desconto" step="0.01" min="0" value="0" />
+                  <span id="pdv-resumo-desconto" class="pdv-resumo-desconto-tag">- R$ 0,00</span>
+                </div>
+              </div>
+
+              <div class="pdv-total-final-row">
+                <div class="pdv-total-labels">
+                  <span>TOTAL LÍQUIDO</span>
+                  <small id="pdv-total-subinfo">0 peças no cupom</small>
+                </div>
+                <strong id="pdv-total-liquido" class="pdv-total-neon">R$ 0,00</strong>
+              </div>
+
+              <div class="pdv-pagamento-section">
+                <span class="pdv-section-mini-title">Forma de Pagamento</span>
+                <div id="pdv-seletor-pagamento" class="pdv-pgto-grid">
+                  <button type="button" class="btn-pgto-pdv ativo" data-pgto="PIX">PIX</button>
+                  <button type="button" class="btn-pgto-pdv" data-pgto="CARTAO">Cartão</button>
+                  <button type="button" class="btn-pgto-pdv" data-pgto="DINHEIRO">Dinheiro</button>
+                  <button type="button" class="btn-pgto-pdv" data-pgto="FIADO">Fiado</button>
+                </div>
+
+                <!-- Painel Condicional: DINHEIRO -->
+                <div id="painel-pgto-dinheiro" class="pdv-painel-condicional hidden">
+                  <div class="pdv-dinheiro-grid">
+                    <label class="pdv-cond-field">
+                      <span>Valor Recebido (R$)</span>
+                      <input type="number" id="input-pdv-valor-recebido" step="0.01" min="0" placeholder="0,00" />
+                    </label>
+                    <div class="pdv-troco-display">
+                      <small>Troco</small>
+                      <strong id="pdv-valor-troco">R$ 0,00</strong>
+                    </div>
+                  </div>
+                  <div class="pdv-cedulas-rapidas">
+                    <button type="button" class="btn-cedula-rapida" data-cedula="EXATO">Exato</button>
+                    <button type="button" class="btn-cedula-rapida" data-cedula="50">R$ 50</button>
+                    <button type="button" class="btn-cedula-rapida" data-cedula="100">R$ 100</button>
+                    <button type="button" class="btn-cedula-rapida" data-cedula="200">R$ 200</button>
+                  </div>
+                </div>
+
+                <!-- Painel Condicional: FIADO -->
+                <div id="painel-pgto-fiado" class="pdv-painel-condicional fiado hidden">
+                  <div class="pdv-fiado-header-row">
+                    <span>Venda na Conta Fiado</span>
+                    <button type="button" id="btn-abrir-modal-cliente-rapido" class="btn-novo-cliente-rapido">+ Novo Cliente</button>
+                  </div>
+                  <div class="pdv-fiado-controls-grid">
+                    <div class="pdv-fiado-select-wrap">
+                      <input type="search" id="input-busca-cliente-pdv" placeholder="Filtrar cliente..." autocomplete="off" />
+                      <select id="select-cliente-fiado-pdv">
+                        <option value="">Selecione o cliente...</option>
+                      </select>
+                    </div>
+                    <label class="pdv-cond-field">
+                      <span>Vencimento</span>
+                      <input type="date" id="input-data-vencimento-pdv" />
+                    </label>
+                  </div>
+                  <div id="card-info-cliente-pdv" class="pdv-cliente-status-bar hidden">
+                    <div>
+                      <small>Dívida Atual</small>
+                      <strong id="pdv-cli-saldo">R$ 0,00</strong>
+                    </div>
+                    <div>
+                      <small>Limite</small>
+                      <strong id="pdv-cli-limite">R$ 0,00</strong>
+                    </div>
+                    <div>
+                      <small>Disponível</small>
+                      <strong id="pdv-cli-disponivel">R$ 0,00</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" id="btn-pdv-finalizar-venda" class="btn-finalizar-venda-pdv" disabled>
+                <span>Finalizar Venda</span>
+                <kbd>F12</kbd>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           VIEW 4: GESTÃO DE FIADO & CRÉDITO (#view-fiado)
+           ================================================================= -->
+      <section id="view-fiado" class="sistema-view hidden">
+        <header class="vitrine-header">
+          <div>
+            <div class="vitrine-titulo-wrap">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              <h1 class="vitrine-titulo">Gestão de Fiado &amp; Crédito</h1>
+            </div>
+            <p class="camaleao-subtitulo-header">
+              Controle de limites, vencimentos, abatimentos parciais e extrato detalhado por cliente
+            </p>
+          </div>
+
+          <button type="button" id="fi-btn-novo-cliente" class="btn-cadastrar-peca">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
+            </svg>
+            <span>Novo Cliente</span>
+          </button>
+        </header>
+
+        <div class="fi-kpis-grid">
+          <div class="fi-kpi fi-kpi-amarelo">
+            <small>Total a Receber</small>
+            <strong id="fi-kpi-receber">R$ 0,00</strong>
+          </div>
+          <div class="fi-kpi">
+            <small>Clientes com Saldo</small>
+            <strong id="fi-kpi-devedores">0</strong>
+          </div>
+          <div class="fi-kpi fi-kpi-vermelho">
+            <small>Limites Estourados</small>
+            <strong id="fi-kpi-estourados">0</strong>
+          </div>
+          <div class="fi-kpi fi-kpi-verde">
+            <small>Recebido Hoje</small>
+            <strong id="fi-kpi-recebido">R$ 0,00</strong>
+          </div>
+        </div>
+
+        <div class="fi-layout-colunas">
+          <!-- Coluna Esquerda: Lista de Clientes -->
+          <div class="fi-col-lista">
+            <div class="fi-busca-wrap vitrine-search-bar">
+              <span class="search-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+              </span>
+              <input
+                type="search"
+                id="fi-busca"
+                placeholder="Buscar cliente por nome ou telefone..."
+                autocomplete="off"
+              />
+              <button type="button" id="fi-btn-limpar-busca" class="btn-clear-search hidden" title="Limpar">&times;</button>
+            </div>
+
+            <div id="fi-pills" class="fi-pills">
+              <button type="button" class="fi-pill ativo" data-fi-filtro="todos">Todos</button>
+              <button type="button" class="fi-pill" data-fi-filtro="divida">Com Dívida</button>
+              <button type="button" class="fi-pill" data-fi-filtro="estourado">Estourados</button>
+              <button type="button" class="fi-pill" data-fi-filtro="quitado">Em Dia</button>
+            </div>
+
+            <div id="fi-lista" class="fi-lista"></div>
+          </div>
+
+          <!-- Coluna Direita: Ficha Completa e Extrato -->
+          <div class="fi-col-ficha">
+            <div id="fi-ficha-vazia" class="fi-ficha-vazia">
+              <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="18" height="14" x="3" y="5" rx="2" />
+                <line x1="3" x2="21" y1="10" y2="10" />
+              </svg>
+              <strong>Selecione um cliente na lista</strong>
+              <p>Clique em um cliente à esquerda para consultar limite disponível, registrar pagamento ou copiar o resumo para WhatsApp.</p>
+            </div>
+
+            <div id="fi-ficha" class="fi-ficha hidden">
+              <div class="fi-ficha-topo">
+                <div class="fi-ficha-id">
+                  <h2 id="fi-nome">—</h2>
+                  <p id="fi-tel">—</p>
+                  <p id="fi-info-extra" class="fi-info-extra"></p>
+                </div>
+                <button type="button" id="fi-btn-editar" class="btn-secundario-sistema btn-sm">Editar Cliente</button>
+              </div>
+
+              <div class="fi-saldos">
+                <div class="fi-saldo-box">
+                  <small>Saldo Devedor</small>
+                  <strong id="fi-saldo">R$ 0,00</strong>
+                </div>
+                <div class="fi-saldo-box">
+                  <small>Limite Disponível</small>
+                  <strong id="fi-disponivel">R$ 0,00</strong>
+                </div>
+                <div class="fi-saldo-box">
+                  <small>Limite Total</small>
+                  <strong id="fi-limite-total">R$ 0,00</strong>
+                </div>
+              </div>
+
+              <div class="fi-barra">
+                <div id="fi-barra-fill" class="fi-barra-fill"></div>
+              </div>
+
+              <div class="fi-acoes">
+                <button type="button" id="fi-btn-receber" class="fi-btn-acao verde">Receber Pagamento</button>
+                <button type="button" id="fi-btn-debito" class="fi-btn-acao laranja">Lançar Débito Avulso</button>
+                <button type="button" id="fi-btn-whats" class="fi-btn-acao azul">Copiar Resumo WhatsApp</button>
+              </div>
+
+              <h3 class="fi-extrato-titulo">Extrato de Movimentações</h3>
+              <div id="fi-extrato" class="fi-extrato"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           VIEW 5: DASHBOARD EXECUTIVO & SAÚDE DAS MARGENS (#view-dashboard)
+           ================================================================= -->
+      <section id="view-dashboard" class="sistema-view hidden">
+        <header class="dash-header">
+          <div>
+            <div class="vitrine-titulo-wrap">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 3v18h18" />
+                <path d="M18 17V9" />
+                <path d="M13 17V5" />
+                <path d="M8 17v-3" />
+              </svg>
+              <h1 class="vitrine-titulo">Dashboard Executivo</h1>
+            </div>
+            <p class="dash-subtitulo">
+              Indicadores consolidados de faturamento, entrada em caixa, lucro bruto realizado e giro de estoque
+            </p>
+          </div>
+
+          <div class="dash-header-direita">
+            <div class="dash-relogio-card">
+              <strong id="dash-relogio-hora">--:--:--</strong>
+              <small id="dash-relogio-data">--</small>
+            </div>
+            <button type="button" id="dash-btn-atualizar" class="btn-secundario-sistema">
+              Atualizar
+            </button>
+          </div>
+        </header>
+
+        <div class="dash-toolbar-filtros">
+          <div class="dash-filtro-bloco">
+            <span class="dash-filtro-label">Período</span>
+            <div id="dash-pills-periodo" class="dash-pills-row">
+              <button type="button" class="dash-pill" data-dash-periodo="hoje">Hoje</button>
+              <button type="button" class="dash-pill" data-dash-periodo="7d">7 Dias</button>
+              <button type="button" class="dash-pill ativo" data-dash-periodo="30d">30 Dias</button>
+              <button type="button" class="dash-pill" data-dash-periodo="mes">Este Mês</button>
+              <button type="button" class="dash-pill" data-dash-periodo="tudo">Tudo</button>
+            </div>
+          </div>
+
+          <div class="dash-filtro-divisor"></div>
+
+          <div class="dash-filtro-bloco">
+            <span class="dash-filtro-label">Grupo</span>
+            <div id="dash-pills-grupo" class="dash-pills-row">
+              <button type="button" class="pill-grupo ativo" data-dash-grupo="todos">Todos</button>
+              <button type="button" class="pill-grupo" data-dash-grupo="cima">Cima</button>
+              <button type="button" class="pill-grupo" data-dash-grupo="baixo">Baixo</button>
+              <button type="button" class="pill-grupo" data-dash-grupo="calcados">Calçados</button>
+              <button type="button" class="pill-grupo" data-dash-grupo="acessorios">Acessórios</button>
+              <button type="button" class="pill-grupo" data-dash-grupo="perfumaria">Perfumes</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-kpis-grid">
+          <div class="dash-kpi-card kpi-verde">
+            <div class="dash-kpi-topo">
+              <small>Faturamento Bruto</small>
+              <span class="dash-kpi-dot verde"></span>
+            </div>
+            <strong id="dash-kpi-faturamento">R$ 0,00</strong>
+            <span id="dash-kpi-faturamento-sub" class="dash-kpi-sub">0 vendas no período</span>
+          </div>
+
+          <div class="dash-kpi-card kpi-ciano">
+            <div class="dash-kpi-topo">
+              <small>Entrada Real em Caixa</small>
+              <span class="dash-kpi-dot ciano"></span>
+            </div>
+            <strong id="dash-kpi-caixa">R$ 0,00</strong>
+            <span id="dash-kpi-caixa-sub" class="dash-kpi-sub">À vista + recebimentos fiado</span>
+          </div>
+
+          <div class="dash-kpi-card kpi-azul">
+            <div class="dash-kpi-topo">
+              <small>Lucro Bruto Realizado</small>
+              <span id="dash-kpi-margem-badge" class="dash-kpi-badge-inline">0%</span>
+            </div>
+            <strong id="dash-kpi-lucro">R$ 0,00</strong>
+            <span id="dash-kpi-lucro-sub" class="dash-kpi-sub">Descontando custo das peças</span>
+          </div>
+
+          <div class="dash-kpi-card kpi-ambar">
+            <div class="dash-kpi-topo">
+              <small>Patrimônio em Estoque</small>
+              <span class="dash-kpi-dot ambar"></span>
+            </div>
+            <strong id="dash-kpi-patrimonio">R$ 0,00</strong>
+            <span id="dash-kpi-patrimonio-sub" class="dash-kpi-sub">0 peças ativas</span>
+          </div>
+        </div>
+
+        <div class="dash-main-split">
+          <aside class="dash-visoes-menu">
+            <div class="dash-visoes-header">VISÕES ANALÍTICAS</div>
+
+            <button type="button" class="dash-visao-btn ativo" data-dash-visao="LINHA">
+              <span class="dash-visao-barra"></span>
+              <div class="dash-visao-texto">
+                <strong>Evolução Diária</strong>
+                <small>Faturamento &amp; Pagamentos</small>
+              </div>
+            </button>
+
+            <button type="button" class="dash-visao-btn" data-dash-visao="MARGENS">
+              <span class="dash-visao-barra"></span>
+              <div class="dash-visao-texto">
+                <strong>Saúde das Margens</strong>
+                <small>Simulador &amp; Reajuste</small>
+              </div>
+              <span id="dash-badge-criticas" class="dash-visao-badge vermelho hidden">0</span>
+            </button>
+
+            <button type="button" class="dash-visao-btn" data-dash-visao="ROSCA">
+              <span class="dash-visao-barra"></span>
+              <div class="dash-visao-texto">
+                <strong>Mix por Grupo</strong>
+                <small>Participação na Receita</small>
+              </div>
+            </button>
+
+            <button type="button" class="dash-visao-btn" data-dash-visao="MARCA">
+              <span class="dash-visao-barra"></span>
+              <div class="dash-visao-texto">
+                <strong>Ranking de Marcas</strong>
+                <small>Receita &amp; Lucro Real</small>
+              </div>
+            </button>
+
+            <button type="button" class="dash-visao-btn" data-dash-visao="TIPO">
+              <span class="dash-visao-barra"></span>
+              <div class="dash-visao-texto">
+                <strong>Top Tipos de Peça</strong>
+                <small>Volume &amp; Giro</small>
+              </div>
+            </button>
+
+            <button type="button" class="dash-visao-btn" data-dash-visao="ATRIBUTOS">
+              <span class="dash-visao-barra"></span>
+              <div class="dash-visao-texto">
+                <strong>Tamanhos &amp; Cores</strong>
+                <small>Preferência de Compra</small>
+              </div>
+            </button>
+
+            <button type="button" class="dash-visao-btn" data-dash-visao="ALERTAS">
+              <span class="dash-visao-barra"></span>
+              <div class="dash-visao-texto">
+                <strong>Alertas de Estoque</strong>
+                <small>Reposição &amp; Encalhados</small>
+              </div>
+              <span id="dash-badge-alertas" class="dash-visao-badge laranja hidden">0</span>
+            </button>
+          </aside>
+
+          <div class="dash-stage-panel dash-stage-card">
+            <div class="dash-stage-header">
+              <div>
+                <h2 id="dash-stage-titulo">Evolução de Vendas</h2>
+                <p id="dash-stage-subtitulo">Desempenho consolidado no período selecionado</p>
+              </div>
+              <div id="dash-stage-controles"></div>
+            </div>
+            <div id="dash-stage-body" class="dash-stage-body"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- =====================================================================
+       MODAIS DO SISTEMA DESKTOP (12 MODAIS)
+       ===================================================================== -->
+
+  <!-- 1. MODAL EDITAR PRODUTO (#modal-editar) -->
+  <div id="modal-editar" class="modal-backdrop hidden">
+    <div class="modal-window modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span id="modal-editar-badge">CATEGORIA</span>
+          <h2>Editar Produto e Grade</h2>
+        </div>
+        <button type="button" class="modal-close-btn" data-fechar-modal="modal-editar" aria-label="Fechar">&times;</button>
+      </div>
+
+      <form id="form-editar-produto" autocomplete="off">
+        <input type="hidden" id="edit-produto-id" />
+        <div class="modal-body">
+          <div class="form-grid-2">
+            <label class="form-field">
+              <span>Modelo / Nome da Peça *</span>
+              <input type="text" id="edit-modelo-nome" required />
+            </label>
+            <label class="form-field">
+              <span>Marca</span>
+              <input type="text" id="edit-marca" placeholder="Sem Marca" />
+            </label>
+          </div>
+
+          <div class="form-grid-2">
+            <label class="form-field">
+              <span>Corte / Estilo</span>
+              <input type="text" id="edit-corte" placeholder="N/A" />
+            </label>
+            <label class="form-field">
+              <span>Tecido / Material</span>
+              <input type="text" id="edit-tecido" placeholder="N/A" />
+            </label>
+          </div>
+
+          <div class="preco-bar-box">
+            <div class="form-grid-3">
+              <label class="form-field">
+                <span>Preço de Custo (R$)</span>
+                <input type="number" id="edit-preco-custo" step="0.01" min="0" />
+              </label>
+              <label class="form-field">
+                <span>Preço de Venda (R$) *</span>
+                <input type="number" id="edit-preco-venda" step="0.01" min="0.01" required />
+              </label>
+              <div class="margem-live-box">
+                <small>Margem Estimada</small>
+                <strong id="edit-resumo-margem">R$ 0,00 (0%)</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="cores-editor-box">
+            <div class="section-sub-header">
+              <span>Cores do Modelo</span>
+            </div>
+            <div id="edit-lista-cores" class="chips-cores-wrap"></div>
+            <div class="add-cor-row">
+              <input type="color" id="edit-nova-cor-hex" value="#3b82f6" />
+              <input type="text" id="edit-nova-cor-nome" placeholder="Adicionar cor (ex: Preto, Marinho)..." />
+              <button type="button" id="btn-add-cor-edit" class="btn-secundario-sistema btn-sm">+ Adicionar</button>
+            </div>
+          </div>
+
+          <div class="grade-editor-box">
+            <div class="section-sub-header">
+              <span>Grade de Tamanhos e Estoque</span>
+              <button type="button" id="btn-add-tamanho-edit" class="btn-secundario-sistema btn-sm">+ Novo Tamanho</button>
+            </div>
+            <div class="tabela-variacoes-header">
+              <span>Tamanho</span>
+              <span>Estoque</span>
+              <span>Custo (R$)</span>
+              <span>Venda (R$)</span>
+              <span>Código QR</span>
+              <span></span>
+            </div>
+            <div id="edit-lista-variacoes" class="lista-variacoes-editor"></div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secundario-sistema" data-fechar-modal="modal-editar">Cancelar</button>
+          <button type="submit" id="btn-salvar-edicao" class="btn-salvar-sistema">Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. MODAL EXCLUIR PRODUTO (#modal-excluir) -->
+  <div id="modal-excluir" class="modal-backdrop hidden">
+    <div class="modal-window modal-sm">
+      <div class="modal-header">
+        <h2>Confirmar Exclusão</h2>
+        <button type="button" class="modal-close-btn" data-fechar-modal="modal-excluir" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body modal-confirm-body">
+        <div style="color: #ef4444; margin-bottom: 4px;">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 6h18" />
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+          </svg>
+        </div>
+        <p class="confirm-main-text">
+          Deseja excluir permanentemente <strong id="excluir-nome-produto">este produto</strong>?
+        </p>
+        <p id="excluir-resumo-estoque" class="confirm-sub-text"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secundario-sistema" data-fechar-modal="modal-excluir">Cancelar</button>
+        <button type="button" id="btn-confirmar-exclusao" class="btn-perigo-sistema">Excluir Produto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. MODAL DETALHES & SIMULADOR DE MARGEM (#modal-detalhes) -->
+  <div id="modal-detalhes" class="modal-backdrop hidden">
+    <div class="modal-window modal-md">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span id="detalhes-badge-grupo">CATEGORIA</span>
+          <h2>Detalhes Financeiros e Códigos QR</h2>
+        </div>
+        <button type="button" class="modal-close-btn" data-fechar-modal="modal-detalhes" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="detalhes-subtitulo" class="detalhes-subtitulo"></p>
+
+        <div class="detalhes-kpis-grid">
+          <div class="detalhe-kpi">
+            <small>Custo Unitário</small>
+            <strong id="det-custo">R$ 0,00</strong>
+          </div>
+          <div class="detalhe-kpi">
+            <small>Preço de Venda</small>
+            <strong id="det-venda" class="txt-verde">R$ 0,00</strong>
+          </div>
+          <div class="detalhe-kpi">
+            <small>Lucro / Peça</small>
+            <strong id="det-lucro-un" class="txt-azul">R$ 0,00</strong>
+          </div>
+          <div class="detalhe-kpi">
+            <small>Margem Líquida</small>
+            <strong id="det-margem">0%</strong>
+          </div>
+        </div>
+
+        <div class="calc-simulador-box">
+          <h3>Simulador Rápido de Desconto no Balcão</h3>
+          <div class="form-grid-3">
+            <label class="form-field">
+              <span>Preço Simulado (R$)</span>
+              <input type="number" id="sim-preco-venda" step="0.01" min="0" />
+            </label>
+            <label class="form-field">
+              <span>Desconto (%)</span>
+              <input type="number" id="sim-desconto" step="1" min="0" max="90" value="0" />
+            </label>
+            <div class="margem-live-box">
+              <small>Lucro Após Desconto</small>
+              <strong id="sim-resultado-lucro">R$ 0,00</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="detalhes-grade-wrap">
+          <h3>Variações e Códigos QR (KNB)</h3>
+          <div id="detalhes-lista-variacoes" class="detalhes-lista-variacoes"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secundario-sistema" data-fechar-modal="modal-detalhes">Fechar</button>
+        <button type="button" id="btn-detalhes-abrir-editar" class="btn-salvar-sistema">Editar Produto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. MODAL VENDER RÁPIDO — ESCOLHER TAMANHO (#modal-vender) -->
+  <div id="modal-vender" class="modal-backdrop hidden">
+    <div class="modal-window modal-sm">
+      <div class="modal-header">
+        <h2>Selecionar Tamanho para Venda</h2>
+        <button type="button" class="modal-close-btn" data-fechar-modal="modal-vender" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="vender-nome-produto" class="vender-subtitulo"></p>
+        <div id="vender-opcoes-tamanhos" class="vender-opcoes-grid"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secundario-sistema" data-fechar-modal="modal-vender">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. MODAL GERADOR DE ETIQUETAS QR CODE (#modal-qrcode) -->
+  <div id="modal-qrcode" class="modal-backdrop hidden">
+    <div class="modal-window qr-modal-window">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title-group">
+            <span id="qr-modal-badge">ETIQUETAS QR</span>
+            <h2>Gerador de Etiquetas QR Code</h2>
+          </div>
+          <p id="qr-modal-subtitulo" class="qr-modal-subtitulo"></p>
+        </div>
+        <button type="button" class="modal-close-btn" data-fechar-modal="modal-qrcode" aria-label="Fechar">&times;</button>
+      </div>
+
+      <div class="modal-body qr-modal-body">
+        <div class="qr-layout-colunas">
+          <div class="qr-col-config">
+            <div class="qr-config-card">
+              <div class="qr-control-group">
+                <span class="qr-field-label">Orientação da Etiqueta</span>
+                <div id="qr-segmented-orientacao" class="qr-segmented-control">
+                  <button type="button" class="qr-seg-btn ativo" data-qr-orientacao="vertical">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect x="6" y="3" width="12" height="18" rx="2" />
+                    </svg>
+                    <span>Vertical (Tag)</span>
+                  </button>
+                  <button type="button" class="qr-seg-btn" data-qr-orientacao="horizontal">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect x="3" y="6" width="18" height="12" rx="2" />
+                    </svg>
+                    <span>Horizontal (Caixa)</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="qr-control-group">
+                <label class="qr-field-label" for="qr-select-formato">Formato de Papel / Impressora</label>
+                <select id="qr-select-formato" class="qr-select-formato">
+                  <option value="a4_3col">Folha A4 — 3 Colunas (Padrão)</option>
+                  <option value="a4_4col">Folha A4 — 4 Colunas Compactas</option>
+                  <option value="termica_1col">Rolo Térmico — 1 Coluna (50x30mm)</option>
+                  <option value="termica_2col">Rolo Térmico — 2 Colunas (Dupla)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="qr-config-card qr-grade-card">
+              <div class="qr-grade-topo">
+                <span class="qr-field-label">Quantidade por Tamanho</span>
+                <div class="qr-atalhos-lote">
+                  <button type="button" id="qr-btn-igualar-estoque" class="qr-btn-ghost">Igualar Estoque</button>
+                  <button type="button" id="qr-btn-um-cada" class="qr-btn-ghost">1 de Cada</button>
+                  <button type="button" id="qr-btn-zerar-tudo" class="qr-btn-ghost qr-btn-ghost-danger">Zerar</button>
+                </div>
+              </div>
+              <div id="qr-lista-tamanhos" class="qr-lista-tamanhos"></div>
+            </div>
+          </div>
+
+          <div class="qr-col-preview">
+            <div class="qr-preview-topo">
+              <span class="qr-preview-titulo">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span>Pré-Visualização de Impressão</span>
+              </span>
+              <span id="qr-preview-info-papel">Folha A4 · 3 Colunas</span>
+            </div>
+            <div id="qr-preview-palco" class="qr-preview-palco orientacao-vertical formato-a4_3col"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer qr-modal-footer">
+        <div class="qr-footer-resumo">
+          <strong id="qr-contador-total">0 etiquetas selecionadas</strong>
+          <small>Impressão em alto contraste P&amp;B otimizada para leitura instantânea</small>
+        </div>
+        <div class="qr-footer-acoes">
+          <button type="button" class="btn-secundario-sistema" data-fechar-modal="modal-qrcode">Fechar</button>
+          <button type="button" id="qr-btn-imprimir-agora" class="btn-salvar-sistema qr-btn-print">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 6 2 18 2 18 9" />
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+              <rect width="12" height="8" x="6" y="14" />
+            </svg>
+            <span>Imprimir Etiquetas</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. MODAL CLIENTE RÁPIDO NO PDV (#modal-cliente-rapido) -->
+  <div id="modal-cliente-rapido" class="modal-backdrop hidden">
+    <div class="modal-window modal-sm">
+      <div class="modal-header">
+        <h2>Novo Cliente Fiado</h2>
+        <button type="button" class="modal-close-btn" data-fechar-modal="modal-cliente-rapido" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="form-cliente-rapido" autocomplete="off">
+        <div class="modal-body">
+          <label class="form-field">
+            <span>Nome Completo *</span>
+            <input type="text" id="rapido-cli-nome" placeholder="Ex: João Silva" required />
+          </label>
+          <label class="form-field">
+            <span>Telefone / WhatsApp</span>
+            <input type="text" id="rapido-cli-telefone" placeholder="(00) 90000-0000" />
+          </label>
+          <div class="form-grid-2">
+            <label class="form-field">
+              <span>Limite de Crédito (R$)</span>
+              <input type="number" id="rapido-cli-limite" step="10" min="0" value="300" />
+            </label>
+            <label class="form-field">
+              <span>Dia de Vencimento</span>
+              <input type="number" id="rapido-cli-dia" min="1" max="31" value="10" />
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secundario-sistema" data-fechar-modal="modal-cliente-rapido">Cancelar</button>
+          <button type="submit" id="btn-salvar-cliente-rapido" class="btn-salvar-sistema">Cadastrar e Selecionar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7. MODAL RECIBO RESUMIDO DA VENDA (#modal-recibo-venda) -->
+  <div id="modal-recibo-venda" class="modal-backdrop hidden">
+    <div class="modal-window modal-sm">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <path d="m9 11 3 3L22 4" />
+          </svg>
+          <h2>Venda Concluída</h2>
+        </div>
+        <button type="button" class="modal-close-btn" data-fechar-modal="modal-recibo-venda" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="recibo-cupom-card">
+          <div class="recibo-topo">
+            <strong>KANEMBERG MULTIMARCAS</strong>
+            <small id="recibo-data-hora">--</small>
+          </div>
+          <div class="recibo-divisor"></div>
+          <ul id="recibo-lista-itens" class="recibo-lista-itens"></ul>
+          <div class="recibo-divisor"></div>
+          <div class="recibo-totais">
+            <div class="recibo-linha">
+              <span>Subtotal</span>
+              <strong id="recibo-subtotal">R$ 0,00</strong>
+            </div>
+            <div id="recibo-linha-desconto" class="recibo-linha hidden">
+              <span>Desconto</span>
+              <strong id="recibo-desconto">- R$ 0,00</strong>
+            </div>
+            <div class="recibo-linha total">
+              <span>Total Pago</span>
+              <strong id="recibo-total-final">R$ 0,00</strong>
+            </div>
+            <div class="recibo-linha">
+              <span>Pagamento</span>
+              <strong id="recibo-forma-pgto">PIX</strong>
+            </div>
+            <div id="recibo-linha-extra" class="recibo-linha hidden">
+              <span id="recibo-extra-label">Info</span>
+              <strong id="recibo-extra-valor">—</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btn-recibo-nova-venda" class="btn-salvar-sistema" style="width: 100%;">
+          Iniciar Próxima Venda
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. MODAL HISTÓRICO & ESTORNO DE VENDAS RECENTES (#modal-historico-vendas) -->
+  <div id="modal-historico-vendas" class="modal-backdrop hidden">
+    <div class="modal-window modal-md">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M12 7v5l4 2" />
+          </svg>
+          <h2>Histórico &amp; Estorno de Vendas Recentes</h2>
+        </div>
+        <button type="button" class="modal-close-btn" data-fechar-modal="modal-historico-vendas" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 12.5px; color: var(--fg-muted);">
+          Exibindo as últimas 15 vendas registradas. Ao estornar uma venda, as peças retornam automaticamente ao estoque e o lançamento de fiado (se houver) é revertido.
+        </p>
+        <div id="lista-historico-vendas" class="hv-lista">
+          <p class="hv-vazio">Carregando vendas recentes...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secundario-sistema" data-fechar-modal="modal-historico-vendas">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. MODAL CLIENTE FIADO — NOVO / EDITAR (#modal-fiado-cliente) -->
+  <div id="modal-fiado-cliente" class="modal-backdrop hidden">
+    <div class="modal-window modal-sm">
+      <div class="modal-header">
+        <h2 id="fi-cli-titulo">Novo Cliente</h2>
+        <button type="button" class="modal-close-btn" data-fechar-modal="modal-fiado-cliente" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="fi-form-cliente" autocomplete="off">
+        <input type="hidden" id="fi-cli-id" />
+        <div class="modal-body">
+          <label class="form-field">
+            <span>Nome Completo *</span>
+            <input type="text" id="fi-cli-nome" required placeholder="Nome do cliente" />
+          </label>
+          <label class="form-field">
+            <span>Telefone / WhatsApp</span>
+            <input type="text" id="fi-cli-telefone" placeholder="(00) 90000-0000" />
+          </label>
+          <div class="form-grid-2">
+            <label class="form-field">
+              <span>Limite de Crédito (R$)</span>
+              <input type="number" id="fi-cli-limite" step="10" min="0" value="300" />
+            </label>
+            <label class="form-field">
+              <span>Dia de Vencimento</span>
+              <input type="number" id="fi-cli-dia" min="1" max="31" value="10" />
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secundario-sistema" data-fechar-modal="modal-fiado-cliente">Cancelar</button>
+          <button type="submit" id="fi-btn-salvar-cliente" class="btn-salvar-sistema">Salvar Cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 10. MODAL RECEBER PAGAMENTO FIADO (#modal-fiado-pagamento) -->
+  <div id="modal-fiado-pagamento" class="modal-backdrop hidden">
+    <div class="modal-window modal-sm">
+      <div class="modal-header">
+        <h2>Receber Pagamento Fiado</h2>
+        <button type="button" class="modal-close-btn" data-fechar-modal="modal-fiado-pagamento" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="fi-form-pagamento" autocomplete="off">
+        <div class="modal-body">
+          <p id="fi-pgto-resumo" class="fi-modal-resumo"></p>
+
+          <label class="form-field">
+            <span>Valor do Abatimento (R$) *</span>
+            <input type="number" id="fi-pgto-valor" step="0.01" min="0.01" required />
+          </label>
+
+          <div class="fi-atalhos-valor">
+            <button type="button" class="btn-secundario-sistema btn-sm" data-fi-pgto-atalho="metade">50% do Saldo</button>
+            <button type="button" class="btn-secundario-sistema btn-sm" data-fi-pgto-atalho="total">Quitar Total</button>
+          </div>
+
+          <div class="form-field">
+            <span>Meio de Recebimento</span>
+            <div id="fi-pgto-formas" class="fi-formas">
+              <button type="button" class="fi-forma ativo" data-fi-forma="PIX">PIX</button>
+              <button type="button" class="fi-forma" data-fi-forma="DINHEIRO">Dinheiro</button>
+              <button type="button" class="fi-forma" data-fi-forma="CARTAO">Cartão</button>
+            </div>
+          </div>
+
+          <label class="form-field">
+            <span>Observação (opcional)</span>
+            <input type="text" id="fi-pgto-obs" placeholder="Ex: Comprovante enviado..." />
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secundario-sistema" data-fechar-modal="modal-fiado-pagamento">Cancelar</button>
+          <button type="submit" id="fi-btn-confirmar-pgto" class="btn-salvar-sistema">Confirmar Recebimento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 11. MODAL LANÇAR DÉBITO AVULSO FIADO (#modal-fiado-debito) -->
+  <div id="modal-fiado-debito" class="modal-backdrop hidden">
+    <div class="modal-window modal-sm">
+      <div class="modal-header">
+        <h2>Lançar Débito Avulso</h2>
+        <button type="button" class="modal-close-btn" data-fechar-modal="modal-fiado-debito" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="fi-form-debito" autocomplete="off">
+        <div class="modal-body">
+          <p id="fi-deb-resumo" class="fi-modal-resumo"></p>
+
+          <label class="form-field">
+            <span>Valor do Débito (R$) *</span>
+            <input type="number" id="fi-deb-valor" step="0.01" min="0.01" required placeholder="0,00" />
+          </label>
+
+          <label class="form-field">
+            <span>Descrição do Lançamento *</span>
+            <input type="text" id="fi-deb-desc" required placeholder="Ex: Ajuste / Peça sob encomenda" />
+          </label>
+
+          <label class="form-field">
+            <span>Data de Vencimento</span>
+            <input type="date" id="fi-deb-venc" />
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secundario-sistema" data-fechar-modal="modal-fiado-debito">Cancelar</button>
+          <button type="submit" id="fi-btn-confirmar-deb" class="btn-salvar-sistema">Confirmar Débito</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 12. MODAL CONEXÃO MOBILE (ON/OFF + QR WI-FI), BACKUP & SERVIDOR (#modal-conexao-servidor) -->
+  <div id="modal-conexao-servidor" class="modal-backdrop hidden">
+    <div class="modal-window modal-sm">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h.01" />
+            <path d="M2 8.82a15 15 0 0 1 20 0" />
+            <path d="M5 12.859a10 10 0 0 1 14 0" />
+            <path d="M8.5 16.429a5 5 0 0 1 7 0" />
+          </svg>
+          <h2>Conexão &amp; Servidor</h2>
+        </div>
+        <button type="button" class="modal-close-btn" data-fechar-modal="modal-conexao-servidor" aria-label="Fechar">&times;</button>
+      </div>
+
+      <div id="conexao-modal-conteudo" class="modal-body conexao-body">
+        <div class="conexao-bloco">
+          <div class="conexao-bloco-head">
+            <h3>Acesso Mobile via Rede Wi-Fi</h3>
+            <label class="switch-control" for="toggle-acesso-mobile" title="Ativar ou bloquear acesso de celulares na rede">
+              <input type="checkbox" id="toggle-acesso-mobile" checked />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+
+          <div id="conexao-bloco-qr">
+            <div class="conexao-qr-box">
+              <img
+                id="conexao-qr-img"
+                src="/api/sistema/qrcode-acesso"
+                width="168"
+                height="168"
+                alt="QR Code de Acesso ao App Mobile"
+              />
+            </div>
+            <div class="conexao-link-row">
+              <input type="text" id="conexao-url-mobile" readonly value="http://127.0.0.1:8000/" />
+              <button type="button" id="btn-copiar-url-mobile" class="btn-secundario-sistema btn-sm">Copiar</button>
+            </div>
+            <p class="conexao-dica">
+              Aponte a câmera do celular conectado ao mesmo Wi-Fi (<strong id="conexao-ip-porta">127.0.0.1:8000</strong>) para abrir o App Mobile.
+            </p>
+          </div>
+
+          <p id="conexao-aviso-off" class="conexao-aviso hidden">
+            Acesso externo desativado. Apenas este computador do caixa pode acessar o sistema no momento.
+          </p>
+        </div>
+
+        <div class="conexao-bloco">
+          <div class="conexao-bloco-head">
+            <h3>Backup &amp; Desligamento Seguro</h3>
+          </div>
+          <p id="conexao-info-banco" class="conexao-dica" style="margin-top: 0;">
+            Banco local: verificando status...
+          </p>
+          <div class="conexao-acoes">
+            <button type="button" id="btn-baixar-backup" class="btn-salvar-sistema">
+              Baixar Backup (.db)
+            </button>
+            <button type="button" id="btn-encerrar-servidor" class="btn-conexao-encerrar">
+              Backup + Encerrar Servidor
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secundario-sistema" data-fechar-modal="modal-conexao-servidor">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Container de Notificações Toast -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Área Isolada para Impressão Nativa de Etiquetas QR Code (@media print) -->
+  <div id="area-impressao-qrcode" class="area-impressao-qrcode"></div>
+
+  <!-- Scripts Modulares do Sistema Desktop (Cache-Busting v=12) -->
+  <script src="/static_sistema/js/kanemberg-hairline.js?v=12"></script>
+  <script src="/static_sistema/js/core.js?v=12"></script>
+  <script src="/static_sistema/js/aba_estoque.js?v=12"></script>
+  <script src="/static_sistema/js/aba_cadastro.js?v=12"></script>
+  <script src="/static_sistema/js/aba_venda.js?v=12"></script>
+  <script src="/static_sistema/js/aba_fiado.js?v=12"></script>
+  <script src="/static_sistema/js/aba_dashboard.js?v=12"></script>
+</body>
+</html>
