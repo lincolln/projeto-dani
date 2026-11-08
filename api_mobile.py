@@ -325,16 +325,20 @@ class ProdutoInput(BaseModel):
     marca: Optional[str] = ""
     tecido: Optional[str] = ""
     corte: Optional[str] = ""
+    grupo: Optional[str] = ""
     cores_tags: Optional[str] = ""
+    cores: Optional[object] = None
     cor: Optional[str] = ""
     cor_hex: Optional[str] = ""
     preco_custo: Optional[float] = 0.0
     preco_venda: Optional[float] = 0.0
-    variacoes: list[VariacaoInput]
+    variacoes: Optional[list[VariacaoInput]] = None
+    grade: Optional[object] = None
 
 
 class AtributoInput(BaseModel):
-    categoria: str
+    categoria: Optional[str] = None
+    tipo: Optional[str] = None
     valor: Optional[str] = None
     nome: Optional[str] = None
     cor_hex: Optional[str] = None
@@ -571,7 +575,7 @@ def listar_atributos(_user: dict = Depends(verificar_token)):
 @app.post("/api/atributos")
 def adicionar_atributo(payload: AtributoInput, _user: dict = Depends(verificar_token)):
     """Cadastra um novo atributo dinâmico (marca, corte, tecido ou cor)."""
-    cat = (payload.categoria or "").strip().lower()
+    cat = (payload.categoria or payload.tipo or "").strip().lower()
     val = (payload.valor or payload.nome or "").strip()
     if not cat or not val:
         raise HTTPException(status_code=400, detail="Categoria e valor do atributo são obrigatórios.")
@@ -605,14 +609,58 @@ def criar_produto(
     modelo = (payload.modelo_nome or "").strip()
     if not modelo:
         raise HTTPException(status_code=400, detail="O nome/modelo do produto é obrigatório.")
-    if not payload.variacoes:
-        raise HTTPException(status_code=400, detail="Adicione pelo menos uma variação (tamanho).")
 
-    cores_tags = _montar_cores_tags(payload.cores_tags or "", payload.variacoes)
     custo_pai = round(float(payload.preco_custo or 0.0), 2)
     venda_pai = round(float(payload.preco_venda or 0.0), 2)
     cor_pai = (payload.cor or "").strip()
     hex_pai = (payload.cor_hex or "#3b82f6").strip()
+
+    if not cor_pai and payload.cores:
+        if isinstance(payload.cores, str):
+            cor_pai = payload.cores.split(",")[0].split("|")[0].strip()
+        elif isinstance(payload.cores, list) and payload.cores:
+            primeiro_c = payload.cores[0]
+            if isinstance(primeiro_c, dict):
+                cor_pai = str(primeiro_c.get("nome") or primeiro_c.get("cor") or "").strip()
+                hex_pai = str(primeiro_c.get("cor_hex") or hex_pai).strip()
+            else:
+                cor_pai = str(primeiro_c).strip()
+
+    variacoes_lista: list[VariacaoInput] = list(payload.variacoes or [])
+    if not variacoes_lista and payload.grade:
+        if isinstance(payload.grade, dict):
+            for tam_k, qtd_v in payload.grade.items():
+                if int(qtd_v or 0) > 0:
+                    variacoes_lista.append(
+                        VariacaoInput(
+                            tamanho=str(tam_k),
+                            cor=cor_pai or "Padrão",
+                            cor_hex=hex_pai,
+                            estoque=int(qtd_v),
+                            preco_custo=custo_pai,
+                            preco_venda=venda_pai,
+                        )
+                    )
+        elif isinstance(payload.grade, list):
+            for g_item in payload.grade:
+                if isinstance(g_item, dict):
+                    qtd_g = int(g_item.get("quantidade") or g_item.get("estoque") or 0)
+                    if qtd_g > 0:
+                        variacoes_lista.append(
+                            VariacaoInput(
+                                tamanho=str(g_item.get("tamanho") or "U"),
+                                cor=cor_pai or "Padrão",
+                                cor_hex=hex_pai,
+                                estoque=qtd_g,
+                                preco_custo=custo_pai,
+                                preco_venda=venda_pai,
+                            )
+                        )
+
+    if not variacoes_lista:
+        raise HTTPException(status_code=400, detail="Adicione pelo menos uma variação (tamanho).")
+
+    cores_tags = _montar_cores_tags(payload.cores_tags or "", variacoes_lista)
 
     with get_db() as conn:
         cur = conn.cursor()
@@ -638,7 +686,7 @@ def criar_produto(
             total_pecas = 0
             codigos_gerados = []
 
-            for v in payload.variacoes:
+            for v in variacoes_lista:
                 tam = (v.tamanho or "U").strip()
                 if not tam.lower().endswith("ml"):
                     tam = tam.upper()

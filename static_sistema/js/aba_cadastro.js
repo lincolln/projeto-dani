@@ -343,7 +343,7 @@ async function salvarAtributoCustomizadoApi(tipo, valor) {
   try {
     await requisitarApi("/api/atributos", {
       metodo: "POST",
-      corpo: { tipo, valor },
+      corpo: { categoria: tipo, tipo, valor },
     });
   } catch (_e) {
     // Não interrompe o fluxo de cadastro caso já exista ou falhe
