@@ -2631,25 +2631,31 @@ def obter_dashboard_completo(
 # 7. CONTROLE DO SISTEMA, CONEXÃO MOBILE ON/OFF, BACKUP E DESLIGAMENTO SEGURO
 # ---------------------------------------------------------------------------
 def _detectar_ip_rede() -> str:
-    """Detecta o IP local da máquina na rede Wi-Fi/LAN com fallback seguro."""
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        sock.settimeout(1.0)
-        sock.connect(("8.8.8.8", 80))
-        ip = sock.getsockname()[0]
-        if ip and not ip.startswith("127."):
-            return ip
-    except Exception:
-        pass
-    finally:
-        sock.close()
+    """Detecta o IP local da máquina na rede Wi-Fi/LAN (ex: 192.168.x.x) com fallback seguro."""
+    for destino in (("8.8.8.8", 80), ("192.168.1.1", 80), ("10.0.0.1", 80)):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            sock.settimeout(0.8)
+            sock.connect(destino)
+            ip = sock.getsockname()[0]
+            if ip and not ip.startswith("127.") and not ip.startswith("169.254."):
+                return ip
+        except Exception:
+            pass
+        finally:
+            sock.close()
 
     try:
-        ip_host = socket.gethostbyname(socket.gethostname())
-        if ip_host:
-            return ip_host
+        _, _, ips_host = socket.gethostbyname_ex(socket.gethostname())
+        for ip_cand in ips_host:
+            if ip_cand.startswith(("192.168.", "10.", "172.")):
+                return ip_cand
+        for ip_cand in ips_host:
+            if ip_cand and not ip_cand.startswith("127.") and not ip_cand.startswith("169.254."):
+                return ip_cand
     except Exception:
         pass
+
     return "127.0.0.1"
 
 
@@ -2675,6 +2681,14 @@ def _criar_backup_sqlite() -> str:
 
 def _montar_status_sistema() -> dict:
     ip_rede = _detectar_ip_rede()
+    try:
+        hostname = socket.gethostname()
+    except Exception:
+        hostname = "servidor-kanemberg"
+
+    origem_chrome_flag = f"http://{ip_rede}:{PORTA_SERVIDOR}"
+    url_mobile = f"{origem_chrome_flag}/app"
+
     tamanho_kb = round(os.path.getsize(DB_PATH) / 1024, 1) if os.path.isfile(DB_PATH) else 0.0
     ultimo_backup = None
     if os.path.isdir(BACKUPS_DIR):
@@ -2691,8 +2705,11 @@ def _montar_status_sistema() -> dict:
         "online": True,
         "acesso_mobile_ativo": acesso_mobile_ativo,
         "ip_rede": ip_rede,
+        "hostname": hostname,
         "porta": PORTA_SERVIDOR,
-        "url_mobile": f"http://{ip_rede}:{PORTA_SERVIDOR}/",
+        "url_mobile": url_mobile,
+        "origem_chrome_flag": origem_chrome_flag,
+        "chrome_flag_url": "chrome://flags/#unsafely-treat-insecure-origin-as-secure",
         "tamanho_banco_kb": tamanho_kb,
         "ultimo_backup": ultimo_backup,
     }

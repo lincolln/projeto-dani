@@ -346,8 +346,11 @@ const estado = {
     online: true,
     acessoMobileAtivo: true,
     ipRede: "127.0.0.1",
+    hostname: "",
     porta: 8000,
     urlMobile: "",
+    origemChromeFlag: "",
+    chromeFlagUrl: "chrome://flags/#unsafely-treat-insecure-origin-as-secure",
     tamanhoBancoKb: 0,
     ultimoBackup: null,
   },
@@ -1045,12 +1048,20 @@ function atualizarIndicadoresConexaoSidebar(dados) {
 
 function renderizarDadosModalConexao(dados) {
   const ativo = Boolean(dados?.acesso_mobile_ativo);
+  const ipRede = dados?.ip_rede || "127.0.0.1";
+  const porta = dados?.porta || 8000;
+  const origemSegura = dados?.origem_chrome_flag || `http://${ipRede}:${porta}`;
+  const urlMobile = dados?.url_mobile || `${origemSegura}/app`;
+  const flagChrome = dados?.chrome_flag_url || "chrome://flags/#unsafely-treat-insecure-origin-as-secure";
+
   const toggleMob = $("toggle-acesso-mobile");
   const blocoQr = $("conexao-bloco-qr");
   const avisoOff = $("conexao-aviso-off");
   const imgQr = $("conexao-qr-img");
   const inpUrl = $("conexao-url-mobile");
   const txtIp = $("conexao-ip-porta");
+  const txtOrigemFlag = $("conexao-origem-flag");
+  const txtChromeFlag = $("conexao-chrome-flag");
   const txtBanco = $("conexao-info-banco");
 
   if (toggleMob) {
@@ -1066,10 +1077,16 @@ function renderizarDadosModalConexao(dados) {
     imgQr.src = `/api/sistema/qrcode-acesso?t=${Date.now()}`;
   }
   if (inpUrl) {
-    inpUrl.value = dados?.url_mobile || `http://${dados?.ip_rede || "127.0.0.1"}:${dados?.porta || 8000}/`;
+    inpUrl.value = urlMobile;
   }
   if (txtIp) {
-    txtIp.textContent = `${dados?.ip_rede || "127.0.0.1"}:${dados?.porta || 8000}`;
+    txtIp.textContent = `${ipRede}:${porta}`;
+  }
+  if (txtOrigemFlag) {
+    txtOrigemFlag.textContent = origemSegura;
+  }
+  if (txtChromeFlag) {
+    txtChromeFlag.textContent = flagChrome;
   }
   if (txtBanco) {
     const tamKb = num(dados?.tamanho_banco_kb, 0).toFixed(1);
@@ -1081,12 +1098,18 @@ function renderizarDadosModalConexao(dados) {
 async function carregarStatusConexao(silencioso = true) {
   try {
     const dados = await requisitarApi("/api/sistema/status");
+    const ipRede = dados.ip_rede || "127.0.0.1";
+    const porta = dados.porta || 8000;
+    const origemSegura = dados.origem_chrome_flag || `http://${ipRede}:${porta}`;
     estado.conexao = {
       online: Boolean(dados.online),
       acessoMobileAtivo: Boolean(dados.acesso_mobile_ativo),
-      ipRede: dados.ip_rede || "127.0.0.1",
-      porta: dados.porta || 8000,
-      urlMobile: dados.url_mobile || "",
+      ipRede,
+      hostname: dados.hostname || "",
+      porta,
+      urlMobile: dados.url_mobile || `${origemSegura}/app`,
+      origemChromeFlag: origemSegura,
+      chromeFlagUrl: dados.chrome_flag_url || "chrome://flags/#unsafely-treat-insecure-origin-as-secure",
       tamanhoBancoKb: num(dados.tamanho_banco_kb, 0),
       ultimoBackup: dados.ultimo_backup || null,
     };
@@ -1126,22 +1149,62 @@ async function alternarAcessoMobile(ativo) {
   }
 }
 
+async function copiarTextoAreaTransferencia(texto, inputFallback, mensagemSucesso) {
+  if (!texto) return;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(texto);
+    } else if (inputFallback && typeof inputFallback.select === "function") {
+      inputFallback.select();
+      document.execCommand("copy");
+    } else {
+      const temp = document.createElement("textarea");
+      temp.value = texto;
+      temp.style.position = "fixed";
+      temp.style.opacity = "0";
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand("copy");
+      temp.remove();
+    }
+    exibirToast(mensagemSucesso, "sucesso");
+  } catch (_e) {
+    exibirToast("Não foi possível copiar automaticamente. Selecione o texto manualmente.", "aviso");
+  }
+}
+
 async function copiarLinkMobileConexao() {
   const inp = $("conexao-url-mobile");
   const url = inp?.value || estado.conexao.urlMobile;
-  if (!url) return;
+  await copiarTextoAreaTransferencia(
+    url,
+    inp,
+    "Link do App Mobile copiado para a área de transferência."
+  );
+}
 
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(url);
-    } else if (inp) {
-      inp.select();
-      document.execCommand("copy");
-    }
-    exibirToast("Endereço do App Mobile copiado para a área de transferência.", "sucesso");
-  } catch (_e) {
-    exibirToast("Não foi possível copiar automaticamente. Selecione o link manualmente.", "aviso");
-  }
+async function copiarFlagChromeConexao() {
+  const flag =
+    $("conexao-chrome-flag")?.textContent?.trim() ||
+    estado.conexao.chromeFlagUrl ||
+    "chrome://flags/#unsafely-treat-insecure-origin-as-secure";
+  await copiarTextoAreaTransferencia(
+    flag,
+    null,
+    "Endereço da Flag do Chrome copiado para a área de transferência."
+  );
+}
+
+async function copiarOrigemSeguraConexao() {
+  const origem =
+    $("conexao-origem-flag")?.textContent?.trim() ||
+    estado.conexao.origemChromeFlag ||
+    `http://${estado.conexao.ipRede || "127.0.0.1"}:${estado.conexao.porta || 8000}`;
+  await copiarTextoAreaTransferencia(
+    origem,
+    null,
+    "Origem segura do servidor copiada para a área de transferência."
+  );
 }
 
 function baixarBackupSistema() {
@@ -1239,6 +1302,8 @@ function registrarEventosCore() {
     alternarAcessoMobile(e.target.checked);
   });
   $("btn-copiar-url-mobile")?.addEventListener("click", copiarLinkMobileConexao);
+  $("btn-copiar-chrome-flag")?.addEventListener("click", copiarFlagChromeConexao);
+  $("btn-copiar-origem-segura")?.addEventListener("click", copiarOrigemSeguraConexao);
   $("btn-baixar-backup")?.addEventListener("click", baixarBackupSistema);
   $("btn-encerrar-servidor")?.addEventListener("click", encerrarServidorSistema);
 

@@ -1586,8 +1586,8 @@
       <div id="conexao-modal-conteudo" class="modal-body conexao-body">
         <div class="conexao-bloco">
           <div class="conexao-bloco-head">
-            <h3>Acesso Mobile via Rede Wi-Fi</h3>
-            <label class="switch-control" for="toggle-acesso-mobile" title="Ativar ou bloquear acesso de celulares na rede">
+            <h3>QR Code do Wi-Fi Local</h3>
+            <label class="switch-control" for="toggle-acesso-mobile" title="Ativar ou bloquear acesso de celulares na rede Wi-Fi">
               <input type="checkbox" id="toggle-acesso-mobile" checked />
               <span class="switch-slider"></span>
             </label>
@@ -1600,16 +1600,59 @@
                 src="/api/sistema/qrcode-acesso"
                 width="168"
                 height="168"
-                alt="QR Code de Acesso ao App Mobile"
+                alt="QR Code do Wi-Fi Local para o App Mobile"
               />
             </div>
             <div class="conexao-link-row">
-              <input type="text" id="conexao-url-mobile" readonly value="http://127.0.0.1:8000/" />
-              <button type="button" id="btn-copiar-url-mobile" class="btn-secundario-sistema btn-sm">Copiar</button>
+              <input type="text" id="conexao-url-mobile" readonly value="http://192.168.0.1:8000/app" />
+              <button type="button" id="btn-copiar-url-mobile" class="btn-secundario-sistema btn-sm">Copiar Link do App</button>
             </div>
             <p class="conexao-dica">
-              Aponte a câmera do celular conectado ao mesmo Wi-Fi (<strong id="conexao-ip-porta">127.0.0.1:8000</strong>) para abrir o App Mobile.
+              Aponte a câmera do celular conectado ao mesmo Wi-Fi (<strong id="conexao-ip-porta">192.168.0.1:8000</strong>) para abrir o App Mobile.
             </p>
+
+            <details
+              id="conexao-pwa-guia"
+              class="conexao-pwa-guia"
+              style="margin-top: 10px; border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2)); border-radius: 8px; padding: 8px 10px; background: var(--bg-surface, rgba(15, 23, 42, 0.35)); font-size: 12px; color: var(--fg-muted, #94a3b8);"
+            >
+              <summary
+                style="cursor: pointer; font-weight: 600; color: var(--fg-primary, #f8fafc); user-select: none; outline: none;"
+              >
+                Como ativar o botão "Instalar Aplicativo" no celular (1ª vez)
+              </summary>
+              <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px; line-height: 1.45;">
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                  <span><strong>Passo 1:</strong> No Chrome do celular, cole e abra o endereço abaixo na barra de navegação:</span>
+                  <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <code
+                      id="conexao-chrome-flag"
+                      style="flex: 1; min-width: 160px; padding: 4px 6px; border-radius: 4px; background: rgba(15, 23, 42, 0.55); border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2)); color: var(--fg-primary, #e2e8f0); font-size: 11px; word-break: break-all;"
+                    >chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>
+                    <button type="button" id="btn-copiar-chrome-flag" class="btn-secundario-sistema btn-sm">
+                      Copiar Endereço Flag do Chrome
+                    </button>
+                  </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                  <span><strong>Passo 2:</strong> Cole a origem do servidor na caixa da flag e altere de <em>Disabled</em> para <strong>Enabled</strong>:</span>
+                  <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <code
+                      id="conexao-origem-flag"
+                      style="flex: 1; min-width: 140px; padding: 4px 6px; border-radius: 4px; background: rgba(15, 23, 42, 0.55); border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2)); color: var(--fg-primary, #e2e8f0); font-size: 11px;"
+                    >http://192.168.0.1:8000</code>
+                    <button type="button" id="btn-copiar-origem-segura" class="btn-secundario-sistema btn-sm">
+                      Copiar Origem Segura do Servidor
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <span><strong>Passo 3:</strong> Reinicie o Chrome no celular (botão <em>Relaunch</em>), leia o QR Code acima e toque em <strong>Instalar Aplicativo</strong>.</span>
+                </div>
+              </div>
+            </details>
           </div>
 
           <p id="conexao-aviso-off" class="conexao-aviso hidden">
@@ -1649,7 +1692,7 @@
 
   <!-- Scripts Modulares do Sistema Desktop (Cache-Busting v=12) -->
   <script src="/static_sistema/js/kanemberg-hairline.js?v=12"></script>
-  <script src="/static_sistema/js/core.js?v=12"></script>
+  <script src="/static_sistema/js/core.js?v=13"></script>
   <script src="/static_sistema/js/aba_estoque.js?v=12"></script>
   <script src="/static_sistema/js/aba_cadastro.js?v=12"></script>
   <script src="/static_sistema/js/aba_venda.js?v=12"></script>
