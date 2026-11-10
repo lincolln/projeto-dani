@@ -2772,8 +2772,48 @@ def sistema_desligar_seguro(request: Request):
 
 
 # ---------------------------------------------------------------------------
-# 8. SERVIR ARQUIVOS ESTÁTICOS (/static, /static_sistema, /sistema, / E /app)
+# 8. SERVIR ARQUIVOS ESTÁTICOS, PWA MANIFEST/SW (/manifest.json, /sw.js, / E /app)
 # ---------------------------------------------------------------------------
+import mimetypes
+
+mimetypes.add_type("application/javascript", ".js")
+mimetypes.add_type("application/manifest+json", ".webmanifest")
+mimetypes.add_type("text/css", ".css")
+mimetypes.add_type("image/png", ".png")
+
+
+@app.get("/manifest.json")
+@app.get("/manifest.webmanifest")
+@app.get("/static/manifest.json")
+def servir_manifest_pwa():
+    """Serve o Web App Manifest com Content-Type oficial exigido pelo Chrome Android."""
+    manifest_path = os.path.join(STATIC_DIR, "manifest.json")
+    if os.path.isfile(manifest_path):
+        return FileResponse(
+            manifest_path,
+            media_type="application/manifest+json",
+            headers={"Cache-Control": "no-cache"},
+        )
+    raise HTTPException(status_code=404, detail="manifest.json não encontrado.")
+
+
+@app.get("/sw.js")
+@app.get("/static/sw.js")
+def servir_service_worker_pwa():
+    """Serve o Service Worker do PWA com escopo raiz '/' liberado."""
+    sw_path = os.path.join(STATIC_DIR, "sw.js")
+    if os.path.isfile(sw_path):
+        return FileResponse(
+            sw_path,
+            media_type="application/javascript",
+            headers={
+                "Service-Worker-Allowed": "/",
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+            },
+        )
+    raise HTTPException(status_code=404, detail="sw.js não encontrado.")
+
+
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/static_sistema", StaticFiles(directory=STATIC_SISTEMA_DIR), name="static_sistema")
 
@@ -2802,14 +2842,37 @@ def sistema_desktop_root():
     )
 
 
+_PWA_SW_SCRIPT = """
+  <script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(function () {});
+    });
+  }
+  </script>
+</body>"""
+
+
 @app.get("/")
 @app.get("/app")
 @app.get("/app/")
 def index_root():
-    """Serve 'static/index.html' na rota raiz '/' e '/app'."""
+    """Serve 'static/index.html' na rota raiz '/' e '/app' com registro automático do Service Worker PWA."""
     index_path = os.path.join(STATIC_DIR, "index.html")
     if os.path.isfile(index_path):
-        return FileResponse(index_path)
+        with open(index_path, "r", encoding="utf-8") as f:
+            html = f.read()
+        html = html.replace(
+            'href="/static/manifest.json?v=4"',
+            'href="/manifest.json"',
+        )
+        if "navigator.serviceWorker.register" not in html and "</body>" in html:
+            html = html.replace("</body>", _PWA_SW_SCRIPT, 1)
+        return HTMLResponse(
+            content=html,
+            status_code=200,
+            headers={"Cache-Control": "no-cache"},
+        )
     return HTMLResponse(
         content="<h1>Kanemberg Mobile API</h1><p>Coloque o arquivo <code>static/index.html</code> para servir a interface web.</p>",
         status_code=200,
