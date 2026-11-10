@@ -1,15 +1,15 @@
 {
-  "id": "/app",
-  "name": "Kanemberg PDV Mobile",
+  "id": "/",
+  "name": "Kanemberg Mobile",
   "short_name": "Kanemberg",
   "description": "Estoque, vendas por QR Code e controle de fiado da loja Kanemberg.",
   "lang": "pt-BR",
-  "start_url": "/app",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#0b1120",
+  "theme_color": "#0b1120",
   "categories": ["business", "shopping", "productivity"],
   "icons": [
     {

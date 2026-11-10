@@ -9,20 +9,20 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Kanemberg">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#0b1120">
   <meta name="format-detection" content="telephone=no">
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 
-  <title>Kanemberg — Painel Local</title>
+  <title>Kanemberg Mobile</title>
 
-  <link rel="manifest" href="/static/manifest.json?v=4">
+  <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/static/icon-180.png">
   <link rel="icon" type="image/png" href="/static/icon-192.png">
-  <link rel="stylesheet" href="/static/style.css?v=4">
+  <link rel="stylesheet" href="/static/style.css?v=5">
 
   <!-- Leitor de QR Code -->
   <script src="https://unpkg.com/html5-qrcode"></script>
-  <script src="/static/app.js?v=4" defer></script>
+  <script src="/static/app.js?v=5" defer></script>
 </head>
 <body>
 
@@ -65,8 +65,8 @@
       <div class="sidebar-topo">
         <img src="/static/icon-192.png" alt="Kanemberg" class="sidebar-logo">
         <div>
-          <div class="sidebar-marca">KANEMBERG</div>
-          <div id="sidebar-usuario" class="sidebar-sub">Administrador</div>
+          <div class="sidebar-marca">KANEMBERG v2</div>
+          <div class="sidebar-sub">Estoque &amp; PDV</div>
         </div>
       </div>
 
@@ -102,6 +102,16 @@
           <span>Controle Fiado</span>
           <kbd class="atalho-kbd">F3</kbd>
         </button>
+
+        <button type="button" id="btn-sidebar-caixa" class="sidebar-btn" data-aba="tab-caixa" data-tab="tab-caixa">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+          <span>📊 Caixa</span>
+          <kbd class="atalho-kbd">F4</kbd>
+        </button>
       </nav>
 
       <div class="sidebar-rodape">
@@ -109,13 +119,16 @@
           <span class="ponto-verde"></span>
           <span>Leitor USB / Bipe Ativo</span>
         </div>
+        <div class="sidebar-usuario-box">
+          <div id="sidebar-usuario" class="sidebar-sub">Administrador</div>
+        </div>
         <button type="button" id="btn-sair-pc" class="btn-sair btn-bloco">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          <span>Encerrar Sessão</span>
+          <span>Sair</span>
         </button>
       </div>
     </aside>
@@ -143,6 +156,16 @@
               <button type="button" class="chip-filtro" data-filtro="com-estoque">Com Estoque</button>
               <button type="button" class="chip-filtro" data-filtro="baixo">Estoque Baixo</button>
               <button type="button" class="chip-filtro" data-filtro="zerado">Esgotados</button>
+            </div>
+
+            <!-- Filtros Rápidos de Grupo Luminescente -->
+            <div id="filtros-grupos-estoque" class="filtros-rapidos filtros-grupos">
+              <button type="button" class="chip-filtro chip-grupo ativo" data-grupo="todos">Todos</button>
+              <button type="button" class="chip-filtro chip-grupo" data-grupo="cima">👕 Cima</button>
+              <button type="button" class="chip-filtro chip-grupo" data-grupo="baixo">👖 Baixo</button>
+              <button type="button" class="chip-filtro chip-grupo" data-grupo="calcados">🩴 Calçados</button>
+              <button type="button" class="chip-filtro chip-grupo" data-grupo="acessorios">⌚ Acessórios</button>
+              <button type="button" class="chip-filtro chip-grupo" data-grupo="perfumaria">🧴 Perfumes</button>
             </div>
           </div>
         </div>
@@ -312,9 +335,97 @@
         </div>
       </section>
 
+      <!-- ================= ABA CAIXA / GANHOS (ADMIN) ================= -->
+      <section id="tab-caixa" class="aba tab-content hidden">
+        <div class="cabecalho-pagina">
+          <div>
+            <h1 class="titulo-pagina">📊 Resumo Financeiro</h1>
+            <p class="subtitulo-pagina">Faturamento bruto, custo das peças vendidas e lucro limpo</p>
+          </div>
+          <button type="button" id="btn-atualizar-caixa" class="btn btn-secundario btn-sm" title="Atualizar dados">
+            🔄 Atualizar
+          </button>
+        </div>
+
+        <!-- SEÇÃO HOJE -->
+        <div class="bloco-financeiro">
+          <div class="bloco-financeiro-header">
+            <h2 class="titulo-secao-fin">📅 HOJE</h2>
+            <span id="fin-hoje-pecas" class="badge-pecas-fin">0 peças vendidas</span>
+          </div>
+
+          <div class="grid-financeiro-3">
+            <div class="card-fin card-fin-bruto">
+              <small>Vendido (Bruto)</small>
+              <strong id="fin-hoje-bruto">R$ 0,00</strong>
+            </div>
+
+            <div class="card-fin card-fin-custo">
+              <small>Custo das Peças</small>
+              <strong id="fin-hoje-custo">R$ 0,00</strong>
+            </div>
+
+            <div class="card-fin card-fin-lucro">
+              <small>Lucro Limpo</small>
+              <strong id="fin-hoje-lucro">R$ 0,00</strong>
+            </div>
+          </div>
+
+          <!-- Divisão de Hoje por Forma de Pagamento -->
+          <div class="card card-pagamentos-hoje">
+            <div class="bloco-titulo mb-10">
+              <h3>💳 Divisão de Hoje por Forma de Pagamento</h3>
+            </div>
+            <div class="grid-pagamentos-hoje">
+              <div class="item-pgto-fin">
+                <span class="pgto-label">⚡ PIX</span>
+                <strong id="fin-pgto-pix">R$ 0,00</strong>
+              </div>
+              <div class="item-pgto-fin">
+                <span class="pgto-label">💳 Cartão</span>
+                <strong id="fin-pgto-cartao">R$ 0,00</strong>
+              </div>
+              <div class="item-pgto-fin">
+                <span class="pgto-label">💵 Dinheiro</span>
+                <strong id="fin-pgto-dinheiro">R$ 0,00</strong>
+              </div>
+              <div class="item-pgto-fin">
+                <span class="pgto-label">📒 Fiado</span>
+                <strong id="fin-pgto-fiado">R$ 0,00</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEÇÃO ÚLTIMOS 7 DIAS (SEMANA) -->
+        <div class="bloco-financeiro mt-14">
+          <div class="bloco-financeiro-header">
+            <h2 class="titulo-secao-fin">📆 ÚLTIMOS 7 DIAS (SEMANA)</h2>
+            <span id="fin-semana-pecas" class="badge-pecas-fin">0 peças vendidas</span>
+          </div>
+
+          <div class="grid-financeiro-3">
+            <div class="card-fin card-fin-bruto">
+              <small>Vendido (Bruto)</small>
+              <strong id="fin-semana-bruto">R$ 0,00</strong>
+            </div>
+
+            <div class="card-fin card-fin-custo">
+              <small>Custo das Peças</small>
+              <strong id="fin-semana-custo">R$ 0,00</strong>
+            </div>
+
+            <div class="card-fin card-fin-lucro">
+              <small>Lucro Limpo</small>
+              <strong id="fin-semana-lucro">R$ 0,00</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </main>
 
-    <!-- Bottom Tab Bar (Mobile — 4 Abas: Estoque | Vender | Fiado | Sair) -->
+    <!-- Bottom Tab Bar (Mobile — Abas: Estoque | Vender | Fiado | Caixa | Sair) -->
     <nav class="tab-bar">
       <button type="button" id="tab-estoque" class="tab-btn ativo" data-aba="aba-estoque">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -345,6 +456,15 @@
           <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
         <span>Fiado</span>
+      </button>
+
+      <button type="button" id="btn-nav-caixa" class="tab-btn" data-aba="tab-caixa" data-tab="tab-caixa">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        <span>📊 Caixa</span>
       </button>
 
       <button type="button" id="btn-sair" class="tab-btn tab-sair" aria-label="Sair">
@@ -494,5 +614,59 @@
     <div class="spinner"></div>
   </div>
 
+  <!-- Registro PWA Service Worker + Reconexão Automática via Porteiro Fixo (GitHub Pages) -->
+  <script>
+    (function () {
+      const PORTEIRO_STATUS_URL = "https://lincolln.github.io/projeto-dani/tunnel_status.json";
+      const STORAGE_IP = "kanemberg_last_local_ip";
+      const STORAGE_TUNNEL = "kanemberg_last_tunnel_url";
+
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(function () {});
+        });
+      }
+
+      async function sincronizarOuReconectarPorteiro() {
+        try {
+          const respLocal = await fetch("/api/sistema/tunnel-status?t=" + Date.now(), { cache: "no-store" });
+          if (respLocal.ok) {
+            const dados = await respLocal.json();
+            if (dados.ip_local) localStorage.setItem(STORAGE_IP, dados.ip_local);
+            if (dados.url_ativa) localStorage.setItem(STORAGE_TUNNEL, dados.url_ativa);
+            return;
+          }
+          if (respLocal.status === 530 || respLocal.status === 502 || respLocal.status === 504) {
+            throw new Error("Tunel expirado");
+          }
+        } catch (_err) {
+          // Servidor atual não respondeu (ex: túnel trycloudflare de ontem expirou)
+          try {
+            const respPorteiro = await fetch(PORTEIRO_STATUS_URL + "?t=" + Date.now(), { cache: "no-store" });
+            if (respPorteiro.ok) {
+              const info = await respPorteiro.json();
+              if (info.ip_local) localStorage.setItem(STORAGE_IP, info.ip_local);
+              const novaUrl = (info.url_ativa || "").trim().replace(/\/+$/, "");
+              const origemAtual = window.location.origin.replace(/\/+$/, "");
+              if (novaUrl && novaUrl.startsWith("https://") && novaUrl !== origemAtual) {
+                localStorage.setItem(STORAGE_TUNNEL, novaUrl);
+                window.location.replace(novaUrl + "/app");
+                return;
+              }
+            }
+          } catch (_e2) {
+            const ipSalvo = (localStorage.getItem(STORAGE_IP) || "").trim().replace(/\/+$/, "");
+            if (ipSalvo && ipSalvo !== window.location.origin.replace(/\/+$/, "")) {
+              // Mantém IP salvo disponível caso o usuário esteja na mesma rede Wi-Fi
+              console.info("IP local de fallback disponível:", ipSalvo);
+            }
+          }
+        }
+      }
+
+      window.addEventListener("load", sincronizarOuReconectarPorteiro);
+      window.addEventListener("online", sincronizarOuReconectarPorteiro);
+    })();
+  </script>
 </body>
 </html>

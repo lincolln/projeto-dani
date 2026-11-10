@@ -345,7 +345,11 @@ const estado = {
   conexao: {
     online: true,
     acessoMobileAtivo: true,
-    ipRede: "127.0.0.1",
+    tunelAtivo: false,
+    iniciandoTunel: false,
+    urlCloudflare: "",
+    urlPorteiroFixo: "https://lincolln.github.io/projeto-dani/",
+    ipRede: "http://127.0.0.1:8000",
     hostname: "",
     porta: 8000,
     urlMobile: "",
@@ -1048,20 +1052,27 @@ function atualizarIndicadoresConexaoSidebar(dados) {
 
 function renderizarDadosModalConexao(dados) {
   const ativo = Boolean(dados?.acesso_mobile_ativo);
-  const ipRede = dados?.ip_rede || "127.0.0.1";
-  const porta = dados?.porta || 8000;
-  const origemSegura = dados?.origem_chrome_flag || `http://${ipRede}:${porta}`;
-  const urlMobile = dados?.url_mobile || `${origemSegura}/app`;
-  const flagChrome = dados?.chrome_flag_url || "chrome://flags/#unsafely-treat-insecure-origin-as-secure";
+  const urlCloudflare = (dados?.url_cloudflare || "").trim();
+  const tunelAtivo = Boolean(urlCloudflare);
+  const ipRedeRaw = dados?.ip_rede || "http://127.0.0.1:8000";
+  const ipRedeHttp = ipRedeRaw.startsWith("http")
+    ? ipRedeRaw
+    : `http://${ipRedeRaw}:${dados?.porta || 8000}`;
+  const urlPorteiro = dados?.url_porteiro_fixo || "https://lincolln.github.io/projeto-dani/";
+  const urlMobile = urlCloudflare || dados?.url_mobile || `${ipRedeHttp}/app`;
 
   const toggleMob = $("toggle-acesso-mobile");
   const blocoQr = $("conexao-bloco-qr");
   const avisoOff = $("conexao-aviso-off");
+  const badgeTunel = $("conexao-status-tunel-badge");
+  const blocoAtivarTunel = $("conexao-bloco-ativar-tunel");
+  const btnRecriarTunel = $("btn-recriar-tunel");
+  const btnCopiarUrl = $("btn-copiar-url-mobile");
+  const dicaPrincipal = $("conexao-dica-principal");
   const imgQr = $("conexao-qr-img");
   const inpUrl = $("conexao-url-mobile");
+  const txtPorteiro = $("conexao-url-porteiro");
   const txtIp = $("conexao-ip-porta");
-  const txtOrigemFlag = $("conexao-origem-flag");
-  const txtChromeFlag = $("conexao-chrome-flag");
   const txtBanco = $("conexao-info-banco");
 
   if (toggleMob) {
@@ -1073,20 +1084,47 @@ function renderizarDadosModalConexao(dados) {
   if (avisoOff) {
     avisoOff.classList.toggle("hidden", ativo);
   }
+
+  if (badgeTunel) {
+    if (tunelAtivo) {
+      badgeTunel.textContent = "HTTPS ATIVO";
+      badgeTunel.style.background = "rgba(16, 185, 129, 0.16)";
+      badgeTunel.style.color = "#10b981";
+      badgeTunel.style.borderColor = "rgba(16, 185, 129, 0.35)";
+    } else {
+      badgeTunel.textContent = dados?.iniciando_tunel ? "INICIANDO..." : "AGUARDANDO TÚNEL";
+      badgeTunel.style.background = "rgba(245, 158, 11, 0.16)";
+      badgeTunel.style.color = "#f59e0b";
+      badgeTunel.style.borderColor = "rgba(245, 158, 11, 0.35)";
+    }
+  }
+
+  if (blocoAtivarTunel) {
+    blocoAtivarTunel.classList.toggle("hidden", tunelAtivo);
+  }
+  if (btnRecriarTunel) {
+    btnRecriarTunel.classList.toggle("hidden", !tunelAtivo);
+  }
+  if (btnCopiarUrl) {
+    btnCopiarUrl.textContent = tunelAtivo ? "Copiar Link HTTPS" : "Copiar Link do App";
+  }
+  if (dicaPrincipal) {
+    dicaPrincipal.innerHTML = tunelAtivo
+      ? 'Leia o QR Code acima no Chrome/Safari para instalar o <strong>App Nativo (WebAPK sem ícone do Chrome)</strong>.'
+      : 'Túnel HTTPS ainda não ativo. Clique em <strong>Ativar Link HTTPS (Cloudflare)</strong> acima ou use o Wi-Fi Local.';
+  }
+
   if (ativo && imgQr) {
-    imgQr.src = `/api/sistema/qrcode-acesso?t=${Date.now()}`;
+    imgQr.src = `/api/sistema/qrcode-acesso?url=${encodeURIComponent(urlMobile)}&t=${Date.now()}`;
   }
   if (inpUrl) {
     inpUrl.value = urlMobile;
   }
+  if (txtPorteiro) {
+    txtPorteiro.textContent = urlPorteiro;
+  }
   if (txtIp) {
-    txtIp.textContent = `${ipRede}:${porta}`;
-  }
-  if (txtOrigemFlag) {
-    txtOrigemFlag.textContent = origemSegura;
-  }
-  if (txtChromeFlag) {
-    txtChromeFlag.textContent = flagChrome;
+    txtIp.textContent = ipRedeHttp;
   }
   if (txtBanco) {
     const tamKb = num(dados?.tamanho_banco_kb, 0).toFixed(1);
@@ -1098,17 +1136,24 @@ function renderizarDadosModalConexao(dados) {
 async function carregarStatusConexao(silencioso = true) {
   try {
     const dados = await requisitarApi("/api/sistema/status");
-    const ipRede = dados.ip_rede || "127.0.0.1";
-    const porta = dados.porta || 8000;
-    const origemSegura = dados.origem_chrome_flag || `http://${ipRede}:${porta}`;
+    const ipRedeRaw = dados.ip_rede || "http://127.0.0.1:8000";
+    const ipRedeHttp = ipRedeRaw.startsWith("http")
+      ? ipRedeRaw
+      : `http://${ipRedeRaw}:${dados.porta || 8000}`;
+    const urlCloudflare = (dados.url_cloudflare || "").trim();
+
     estado.conexao = {
       online: Boolean(dados.online),
       acessoMobileAtivo: Boolean(dados.acesso_mobile_ativo),
-      ipRede,
+      tunelAtivo: Boolean(urlCloudflare),
+      iniciandoTunel: Boolean(dados.iniciando_tunel),
+      urlCloudflare,
+      urlPorteiroFixo: dados.url_porteiro_fixo || "https://lincolln.github.io/projeto-dani/",
+      ipRede: ipRedeHttp,
       hostname: dados.hostname || "",
-      porta,
-      urlMobile: dados.url_mobile || `${origemSegura}/app`,
-      origemChromeFlag: origemSegura,
+      porta: dados.porta || 8000,
+      urlMobile: urlCloudflare || dados.url_mobile || `${ipRedeHttp}/app`,
+      origemChromeFlag: dados.origem_chrome_flag || ipRedeHttp,
       chromeFlagUrl: dados.chrome_flag_url || "chrome://flags/#unsafely-treat-insecure-origin-as-secure",
       tamanhoBancoKb: num(dados.tamanho_banco_kb, 0),
       ultimoBackup: dados.ultimo_backup || null,
@@ -1126,7 +1171,53 @@ async function carregarStatusConexao(silencioso = true) {
 
 async function abrirModalConexaoServidor() {
   abrirModal("modal-conexao-servidor");
-  await carregarStatusConexao(false);
+  const dados = await carregarStatusConexao(false);
+  // Se o túnel ainda estiver subindo em background, faz uma nova checagem após 3s
+  if (dados && !dados.url_cloudflare && dados.iniciando_tunel) {
+    setTimeout(() => {
+      carregarStatusConexao(true);
+    }, 3000);
+  }
+}
+
+async function iniciarOuRecriarTunelCloudflare(reiniciar = false) {
+  const btnAtivar = $("btn-ativar-tunel");
+  const btnRecriar = $("btn-recriar-tunel");
+  const txtOriginalAtivar = btnAtivar?.textContent || "Ativar Link HTTPS (Cloudflare)";
+  const txtOriginalRecriar = btnRecriar?.textContent || "Recriar Túnel";
+
+  if (btnAtivar) {
+    btnAtivar.disabled = true;
+    btnAtivar.textContent = "Gerando Link HTTPS Cloudflare...";
+  }
+  if (btnRecriar) {
+    btnRecriar.disabled = true;
+    btnRecriar.textContent = "Recriando...";
+  }
+
+  try {
+    const resp = await requisitarApi("/api/sistema/iniciar-tunel", {
+      metodo: "POST",
+      corpo: { reiniciar: Boolean(reiniciar) },
+    });
+    await carregarStatusConexao(true);
+    if (resp?.url_cloudflare) {
+      exibirToast("Link HTTPS Cloudflare ativo e sincronizado com o Porteiro PWA.", "sucesso");
+    } else {
+      exibirToast(resp?.mensagem || "Não foi possível obter a URL do Cloudflare agora.", "aviso");
+    }
+  } catch (erro) {
+    exibirToast(`Falha ao iniciar túnel Cloudflare: ${erro.message}`, "erro");
+  } finally {
+    if (btnAtivar) {
+      btnAtivar.disabled = false;
+      btnAtivar.textContent = txtOriginalAtivar;
+    }
+    if (btnRecriar) {
+      btnRecriar.disabled = false;
+      btnRecriar.textContent = txtOriginalRecriar;
+    }
+  }
 }
 
 async function alternarAcessoMobile(ativo) {
@@ -1139,7 +1230,7 @@ async function alternarAcessoMobile(ativo) {
     exibirToast(
       dados.mensagem ||
         (dados.acesso_mobile_ativo
-          ? "Acesso Mobile liberado na rede Wi-Fi."
+          ? "Acesso Mobile liberado."
           : "Acesso Mobile bloqueado (somente este computador)."),
       dados.acesso_mobile_ativo ? "sucesso" : "aviso"
     );
@@ -1175,35 +1266,35 @@ async function copiarTextoAreaTransferencia(texto, inputFallback, mensagemSucess
 
 async function copiarLinkMobileConexao() {
   const inp = $("conexao-url-mobile");
-  const url = inp?.value || estado.conexao.urlMobile;
+  const url = inp?.value || estado.conexao.urlCloudflare || estado.conexao.urlMobile;
   await copiarTextoAreaTransferencia(
     url,
     inp,
-    "Link do App Mobile copiado para a área de transferência."
+    "Link HTTPS do App copiado para a área de transferência."
   );
 }
 
-async function copiarFlagChromeConexao() {
-  const flag =
-    $("conexao-chrome-flag")?.textContent?.trim() ||
-    estado.conexao.chromeFlagUrl ||
-    "chrome://flags/#unsafely-treat-insecure-origin-as-secure";
+async function copiarLinkPorteiroFixo() {
+  const url =
+    $("conexao-url-porteiro")?.textContent?.trim() ||
+    estado.conexao.urlPorteiroFixo ||
+    "https://lincolln.github.io/projeto-dani/";
   await copiarTextoAreaTransferencia(
-    flag,
+    url,
     null,
-    "Endereço da Flag do Chrome copiado para a área de transferência."
+    "Link do Porteiro Fixo PWA copiado para a área de transferência."
   );
 }
 
-async function copiarOrigemSeguraConexao() {
-  const origem =
-    $("conexao-origem-flag")?.textContent?.trim() ||
-    estado.conexao.origemChromeFlag ||
-    `http://${estado.conexao.ipRede || "127.0.0.1"}:${estado.conexao.porta || 8000}`;
+async function copiarIpLocalConexao() {
+  const ip =
+    $("conexao-ip-porta")?.textContent?.trim() ||
+    estado.conexao.ipRede ||
+    "http://127.0.0.1:8000";
   await copiarTextoAreaTransferencia(
-    origem,
+    ip,
     null,
-    "Origem segura do servidor copiada para a área de transferência."
+    "Endereço IP da Rede Local copiado para a área de transferência."
   );
 }
 
@@ -1301,9 +1392,15 @@ function registrarEventosCore() {
   $("toggle-acesso-mobile")?.addEventListener("change", (e) => {
     alternarAcessoMobile(e.target.checked);
   });
+  $("btn-ativar-tunel")?.addEventListener("click", () => {
+    iniciarOuRecriarTunelCloudflare(false);
+  });
+  $("btn-recriar-tunel")?.addEventListener("click", () => {
+    iniciarOuRecriarTunelCloudflare(true);
+  });
   $("btn-copiar-url-mobile")?.addEventListener("click", copiarLinkMobileConexao);
-  $("btn-copiar-chrome-flag")?.addEventListener("click", copiarFlagChromeConexao);
-  $("btn-copiar-origem-segura")?.addEventListener("click", copiarOrigemSeguraConexao);
+  $("btn-copiar-porteiro")?.addEventListener("click", copiarLinkPorteiroFixo);
+  $("btn-copiar-ip-local")?.addEventListener("click", copiarIpLocalConexao);
   $("btn-baixar-backup")?.addEventListener("click", baixarBackupSistema);
   $("btn-encerrar-servidor")?.addEventListener("click", encerrarServidorSistema);
 

@@ -1,9 +1,9 @@
 /* =========================================================
-   KANEMBERG PDV MOBILE — Service Worker (PWA Installable)
-   Escopo: / (cobre / e /app na rede Wi-Fi local)
+   KANEMBERG PDV MOBILE — Service Worker (PWA + Reconexão Porteiro)
+   Escopo: / (cobre / e /app via Cloudflare HTTPS e LAN)
    ========================================================= */
 
-const CACHE_NAME = "kanemberg-pwa-v4";
+const CACHE_NAME = "kanemberg-pwa-v5";
 const STATIC_ASSETS = [
   "/app",
   "/",
@@ -19,9 +19,7 @@ const STATIC_ASSETS = [
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch(() => {});
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS).catch(() => {}))
   );
 });
 
@@ -29,12 +27,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-          return null;
-        })
+        keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : null))
       )
     ).then(() => self.clients.claim())
   );
@@ -42,29 +35,36 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  if (req.method !== "GET") {
-    return;
-  }
+  if (req.method !== "GET") return;
 
   const url = new URL(req.url);
+  if (url.pathname.startsWith("/api/")) return;
 
-  // Requisições de API sempre vão direto para a rede (tempo real)
-  if (url.pathname.startsWith("/api/")) {
-    return;
-  }
-
-  // Estratégia Network-First com fallback para Cache (exigido pelo Chrome PWA)
   event.respondWith(
     fetch(req)
       .then((networkResp) => {
+        // Se um túnel trycloudflare antigo expirou (HTTP 530/502/504), entrega o app em cache para acionar o reconector
+        if (
+          req.mode === "navigate" &&
+          networkResp &&
+          (networkResp.status === 530 || networkResp.status === 502 || networkResp.status === 504)
+        ) {
+          return caches.match("/app").then((cached) => cached || caches.match("/") || networkResp);
+        }
         if (networkResp && networkResp.status === 200 && networkResp.type === "basic") {
           const respClone = networkResp.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(req, respClone).catch(() => {});
-          });
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, respClone).catch(() => {}));
         }
         return networkResp;
       })
-      .catch(() => caches.match(req))
+      .catch(() =>
+        caches.match(req).then((cached) => {
+          if (cached) return cached;
+          if (req.mode === "navigate") {
+            return caches.match("/app").then((c) => c || caches.match("/"));
+          }
+          return cached;
+        })
+      )
   );
 });

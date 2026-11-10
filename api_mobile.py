@@ -2628,8 +2628,39 @@ def obter_dashboard_completo(
 
 
 # ---------------------------------------------------------------------------
-# 7. CONTROLE DO SISTEMA, CONEXÃO MOBILE ON/OFF, BACKUP E DESLIGAMENTO SEGURO
+# 7. CONTROLE DO SISTEMA, PORTEIRO INTELIGENTE (CLOUDFLARE + GITHUB PAGES),
+#    CONEXÃO MOBILE ON/OFF, BACKUP E DESLIGAMENTO SEGURO
 # ---------------------------------------------------------------------------
+import re
+import shutil
+import subprocess
+import urllib.request
+
+DOCS_DIR = os.path.join(BASE_DIR, "docs")
+TUNNEL_STATUS_PATH = os.path.join(DOCS_DIR, "tunnel_status.json")
+URL_PORTEIRO_FIXO = "https://lincolln.github.io/projeto-dani/"
+CLOUDFLARED_DOWNLOAD_URL = (
+    "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
+)
+_REGEX_TRYCLOUDFLARE = re.compile(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com")
+_LOCK_TUNEL = threading.Lock()
+
+ESTADO_SERVIDOR = {
+    "url_cloudflare": "",
+    "processo_tunel": None,
+    "iniciando_tunel": False,
+    "atualizado_em": None,
+}
+
+
+class CloudflareUrlInput(BaseModel):
+    url: str = ""
+
+
+class IniciarTunelInput(BaseModel):
+    reiniciar: bool = False
+
+
 def _detectar_ip_rede() -> str:
     """Detecta o IP local da máquina na rede Wi-Fi/LAN (ex: 192.168.x.x) com fallback seguro."""
     for destino in (("8.8.8.8", 80), ("192.168.1.1", 80), ("10.0.0.1", 80)):
@@ -2659,6 +2690,207 @@ def _detectar_ip_rede() -> str:
     return "127.0.0.1"
 
 
+def _localizar_ou_baixar_cloudflared() -> Optional[str]:
+    """Localiza cloudflared na pasta do projeto ou no PATH; se ausente, baixa o binário oficial."""
+    candidatos = [
+        os.path.join(BASE_DIR, "cloudflared.exe"),
+        os.path.join(BASE_DIR, "cloudflared"),
+        shutil.which("cloudflared"),
+        shutil.which("cloudflared.exe"),
+        os.path.expandvars(r"%ProgramFiles%\cloudflared\cloudflared.exe"),
+        os.path.expandvars(r"%ProgramFiles(x86)%\cloudflared\cloudflared.exe"),
+        os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WinGet\Links\cloudflared.exe"),
+    ]
+    for caminho in candidatos:
+        if caminho and os.path.isfile(caminho):
+            return caminho
+
+    destino_local = os.path.join(BASE_DIR, "cloudflared.exe")
+    try:
+        urllib.request.urlretrieve(CLOUDFLARED_DOWNLOAD_URL, destino_local)
+        if os.path.isfile(destino_local) and os.path.getsize(destino_local) > 1_000_000:
+            return destino_local
+    except Exception:
+        pass
+
+    return None
+
+
+def sincronizar_porteiro_github() -> None:
+    """Faz commit e push silencioso de docs/tunnel_status.json em background sem travar o servidor."""
+    def _worker():
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        try:
+            subprocess.run(
+                ["git", "add", "docs/tunnel_status.json"],
+                cwd=BASE_DIR,
+                capture_output=True,
+                timeout=15,
+                creationflags=flags,
+            )
+            res_commit = subprocess.run(
+                ["git", "commit", "-m", "chore: update active tunnel url"],
+                cwd=BASE_DIR,
+                capture_output=True,
+                timeout=15,
+                creationflags=flags,
+            )
+            if res_commit.returncode == 0:
+                subprocess.run(
+                    ["git", "push"],
+                    cwd=BASE_DIR,
+                    capture_output=True,
+                    timeout=25,
+                    creationflags=flags,
+                )
+        except Exception:
+            pass
+
+    threading.Thread(target=_worker, daemon=True).start()
+
+
+def _salvar_tunnel_status_json(url_ativa: str) -> dict:
+    """Grava docs/tunnel_status.json e dispara sincronização assíncrona com o GitHub Pages."""
+    os.makedirs(DOCS_DIR, exist_ok=True)
+    ip_apenas = _detectar_ip_rede()
+    ip_local_http = f"http://{ip_apenas}:{PORTA_SERVIDOR}"
+    agora_iso = datetime.now().isoformat(timespec="seconds")
+
+    url_limpa = (url_ativa or "").strip().rstrip("/")
+    ESTADO_SERVIDOR["url_cloudflare"] = url_limpa
+    ESTADO_SERVIDOR["atualizado_em"] = agora_iso
+
+    payload = {
+        "url_ativa": url_limpa,
+        "ip_local": ip_local_http,
+        "atualizado_em": agora_iso,
+    }
+    try:
+        with open(TUNNEL_STATUS_PATH, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+    if url_limpa:
+        sincronizar_porteiro_github()
+
+    return payload
+
+
+def _ler_tunel_existente_log_externo() -> str:
+    """Verifica se o iniciar_mobile.bat já abriu um túnel gravado em %TEMP%\\kanemberg_tunnel.log."""
+    log_temp = os.path.join(os.getenv("TEMP", ""), "kanemberg_tunnel.log")
+    if os.path.isfile(log_temp):
+        try:
+            # Só considera log recente (modificado nas últimas 12 horas)
+            if (datetime.now().timestamp() - os.path.getmtime(log_temp)) < 43200:
+                with open(log_temp, "r", encoding="utf-8", errors="ignore") as f:
+                    conteudo = f.read()
+                m = _REGEX_TRYCLOUDFLARE.search(conteudo)
+                if m:
+                    return m.group(0).rstrip("/")
+        except Exception:
+            pass
+    return ""
+
+
+def iniciar_ou_obter_tunel_cloudflare(forcar_reinicio: bool = False, aguardar_segundos: float = 14.0) -> str:
+    """Inicia ou reaproveita o túnel Cloudflare Quick Tunnel e captura a URL https://*.trycloudflare.com."""
+    with _LOCK_TUNEL:
+        proc_atual = ESTADO_SERVIDOR.get("processo_tunel")
+        url_atual = ESTADO_SERVIDOR.get("url_cloudflare") or ""
+
+        if not forcar_reinicio:
+            if url_atual and proc_atual is not None and proc_atual.poll() is None:
+                return url_atual
+            url_ext = _ler_tunel_existente_log_externo()
+            if url_ext and not url_atual:
+                _salvar_tunnel_status_json(url_ext)
+                return url_ext
+
+        # Encerra processo anterior se existir
+        if proc_atual is not None:
+            try:
+                proc_atual.terminate()
+                proc_atual.wait(timeout=3)
+            except Exception:
+                try:
+                    proc_atual.kill()
+                except Exception:
+                    pass
+            ESTADO_SERVIDOR["processo_tunel"] = None
+
+        ESTADO_SERVIDOR["url_cloudflare"] = ""
+        ESTADO_SERVIDOR["iniciando_tunel"] = True
+
+        bin_cf = _localizar_ou_baixar_cloudflared()
+        if not bin_cf:
+            ESTADO_SERVIDOR["iniciando_tunel"] = False
+            return ""
+
+        evento_url = threading.Event()
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+        try:
+            proc = subprocess.Popen(
+                [
+                    bin_cf,
+                    "tunnel",
+                    "--no-autoupdate",
+                    "--config",
+                    "NUL",
+                    "--url",
+                    f"http://localhost:{PORTA_SERVIDOR}",
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                cwd=BASE_DIR,
+                creationflags=flags,
+            )
+            ESTADO_SERVIDOR["processo_tunel"] = proc
+        except Exception:
+            ESTADO_SERVIDOR["iniciando_tunel"] = False
+            return ""
+
+        def _leitor_stdout(processo: subprocess.Popen):
+            try:
+                if not processo.stdout:
+                    return
+                for linha in processo.stdout:
+                    if not linha:
+                        continue
+                    match = _REGEX_TRYCLOUDFLARE.search(linha)
+                    if match and not ESTADO_SERVIDOR.get("url_cloudflare"):
+                        url_encontrada = match.group(0).rstrip("/")
+                        _salvar_tunnel_status_json(url_encontrada)
+                        ESTADO_SERVIDOR["iniciando_tunel"] = False
+                        evento_url.set()
+            except Exception:
+                pass
+            finally:
+                ESTADO_SERVIDOR["iniciando_tunel"] = False
+                evento_url.set()
+
+        threading.Thread(target=_leitor_stdout, args=(proc,), daemon=True).start()
+
+    if aguardar_segundos > 0:
+        evento_url.wait(timeout=aguardar_segundos)
+
+    return ESTADO_SERVIDOR.get("url_cloudflare") or ""
+
+
+@app.on_event("startup")
+def _auto_iniciar_tunel_no_boot():
+    """Inicia automaticamente o túnel Cloudflare em background ao subir o servidor."""
+    threading.Thread(
+        target=lambda: iniciar_ou_obter_tunel_cloudflare(forcar_reinicio=False, aguardar_segundos=0.0),
+        daemon=True,
+    ).start()
+
+
 def _criar_backup_sqlite() -> str:
     """Cria cópia íntegra do banco SQLite (compatível com modo WAL) dentro de backups/."""
     os.makedirs(BACKUPS_DIR, exist_ok=True)
@@ -2680,14 +2912,29 @@ def _criar_backup_sqlite() -> str:
 
 
 def _montar_status_sistema() -> dict:
-    ip_rede = _detectar_ip_rede()
+    ip_apenas = _detectar_ip_rede()
     try:
         hostname = socket.gethostname()
     except Exception:
         hostname = "servidor-kanemberg"
 
-    origem_chrome_flag = f"http://{ip_rede}:{PORTA_SERVIDOR}"
-    url_mobile = f"{origem_chrome_flag}/app"
+    ip_rede_http = f"http://{ip_apenas}:{PORTA_SERVIDOR}"
+    url_ip_local = f"{ip_rede_http}/app"
+
+    proc_tunel = ESTADO_SERVIDOR.get("processo_tunel")
+    if proc_tunel is not None and proc_tunel.poll() is not None:
+        ESTADO_SERVIDOR["processo_tunel"] = None
+        ESTADO_SERVIDOR["url_cloudflare"] = ""
+
+    url_cloudflare = (ESTADO_SERVIDOR.get("url_cloudflare") or "").strip().rstrip("/")
+    if not url_cloudflare:
+        url_ext = _ler_tunel_existente_log_externo()
+        if url_ext:
+            url_cloudflare = url_ext
+            ESTADO_SERVIDOR["url_cloudflare"] = url_cloudflare
+
+    # Prioriza url_cloudflare se ativa para o QR Code abrir direto em HTTPS (WebAPK puro sem ícone do Chrome)
+    url_mobile = url_cloudflare if url_cloudflare else url_ip_local
 
     tamanho_kb = round(os.path.getsize(DB_PATH) / 1024, 1) if os.path.isfile(DB_PATH) else 0.0
     ultimo_backup = None
@@ -2704,14 +2951,21 @@ def _montar_status_sistema() -> dict:
     return {
         "online": True,
         "acesso_mobile_ativo": acesso_mobile_ativo,
-        "ip_rede": ip_rede,
+        "tunel_ativo": bool(url_cloudflare),
+        "iniciando_tunel": bool(ESTADO_SERVIDOR.get("iniciando_tunel")),
+        "url_cloudflare": url_cloudflare,
+        "url_porteiro_fixo": URL_PORTEIRO_FIXO,
+        "ip_rede": ip_rede_http,
+        "ip_apenas": ip_apenas,
+        "url_ip_local": url_ip_local,
         "hostname": hostname,
         "porta": PORTA_SERVIDOR,
         "url_mobile": url_mobile,
-        "origem_chrome_flag": origem_chrome_flag,
+        "origem_chrome_flag": ip_rede_http,
         "chrome_flag_url": "chrome://flags/#unsafely-treat-insecure-origin-as-secure",
         "tamanho_banco_kb": tamanho_kb,
         "ultimo_backup": ultimo_backup,
+        "atualizado_em": ESTADO_SERVIDOR.get("atualizado_em"),
     }
 
 
@@ -2719,6 +2973,49 @@ def _montar_status_sistema() -> dict:
 def sistema_status(request: Request):
     exigir_acesso_local_caixa(request)
     return _montar_status_sistema()
+
+
+@app.get("/api/sistema/tunnel-status")
+def sistema_tunnel_status():
+    """Retorna o JSON público de status do túnel e IP local para reconexão do Porteiro/PWA."""
+    st = _montar_status_sistema()
+    return {
+        "url_ativa": st["url_cloudflare"],
+        "ip_local": st["ip_rede"],
+        "url_porteiro_fixo": st["url_porteiro_fixo"],
+        "atualizado_em": st["atualizado_em"] or datetime.now().isoformat(timespec="seconds"),
+    }
+
+
+@app.post("/api/sistema/iniciar-tunel")
+def sistema_iniciar_tunel(
+    request: Request,
+    dados: Optional[IniciarTunelInput] = None,
+):
+    exigir_acesso_local_caixa(request)
+    reiniciar = bool(dados.reiniciar) if dados else True
+    url_gerada = iniciar_ou_obter_tunel_cloudflare(
+        forcar_reinicio=reiniciar,
+        aguardar_segundos=15.0,
+    )
+    status_atual = _montar_status_sistema()
+    status_atual["sucesso"] = bool(url_gerada)
+    status_atual["mensagem"] = (
+        f"Túnel HTTPS ativo: {url_gerada}"
+        if url_gerada
+        else "Não foi possível obter a URL do Cloudflare agora. Verifique a conexão com a internet."
+    )
+    return status_atual
+
+
+@app.post("/api/sistema/cloudflare-url")
+def sistema_definir_cloudflare_url(dados: CloudflareUrlInput, request: Request):
+    exigir_acesso_local_caixa(request)
+    url_limpa = (dados.url or "").strip().rstrip("/")
+    _salvar_tunnel_status_json(url_limpa)
+    status_atual = _montar_status_sistema()
+    status_atual["sucesso"] = True
+    return status_atual
 
 
 @app.post("/api/sistema/mobile-toggle")
@@ -2730,10 +3027,10 @@ def sistema_mobile_toggle(dados: MobileToggleInput, request: Request):
 
 
 @app.get("/api/sistema/qrcode-acesso")
-def sistema_qrcode_acesso(request: Request):
+def sistema_qrcode_acesso(request: Request, url: Optional[str] = Query(None)):
     exigir_acesso_local_caixa(request)
-    url_mobile = _montar_status_sistema()["url_mobile"]
-    svg_bytes = _gerar_svg_qrcode_alto_contraste(url_mobile, border=2)
+    destino = (url or "").strip() or _montar_status_sistema()["url_mobile"]
+    svg_bytes = _gerar_svg_qrcode_alto_contraste(destino, border=2)
     return Response(
         content=svg_bytes,
         media_type="image/svg+xml",
@@ -2761,6 +3058,13 @@ def sistema_desligar_seguro(request: Request):
         arquivo_bkp = os.path.basename(caminho)
     except Exception:
         arquivo_bkp = None
+
+    proc_tunel = ESTADO_SERVIDOR.get("processo_tunel")
+    if proc_tunel is not None:
+        try:
+            proc_tunel.terminate()
+        except Exception:
+            pass
 
     threading.Timer(1.0, lambda: os._exit(0)).start()
     return {

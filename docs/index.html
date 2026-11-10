@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kanemberg">
+  <meta name="theme-color" content="#0b1120">
+  <title>Kanemberg Mobile — Porteiro Inteligente</title>
+
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon-180.png">
+  <link rel="icon" type="image/png" href="./icon-192.png">
+  <script src="https://unpkg.com/html5-qrcode" defer></script>
+
+  <style>
+    :root {
+      --bg-base: #0b1120;
+      --bg-card: #111827;
+      --bg-surface: #1e293b;
+      --border: rgba(148, 163, 184, 0.18);
+      --fg-primary: #f8fafc;
+      --fg-muted: #94a3b8;
+      --fg-subtle: #64748b;
+      --accent: #38bdf8;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: var(--bg-base);
+      color: var(--fg-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .launcher-card {
+      width: 100%;
+      max-width: 410px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 26px 22px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      text-align: center;
+    }
+    .brand-logo {
+      width: 68px;
+      height: 68px;
+      border-radius: 14px;
+      margin: 0 auto 14px;
+      display: block;
+      border: 1px solid var(--border);
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      font-size: 12px;
+      color: var(--fg-muted);
+      margin-bottom: 18px;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--fg-primary);
+      margin-bottom: 16px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1.4s infinite ease-in-out;
+    }
+    .dot.ok { background: var(--success); animation: none; }
+    .dot.warn { background: var(--warning); animation: none; }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.35; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+    .url-box {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+      color: var(--fg-muted);
+      word-break: break-all;
+      margin-bottom: 16px;
+      text-align: left;
+    }
+    .url-box strong {
+      display: block;
+      font-family: inherit;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--fg-subtle);
+      margin-bottom: 4px;
+    }
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .btn {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      text-decoration: none;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--fg-primary);
+      border-color: var(--border);
+    }
+    .hidden { display: none !important; }
+    #qr-reader-box {
+      margin-top: 12px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .manual-box {
+      margin-top: 12px;
+      display: flex;
+      gap: 6px;
+    }
+    .manual-box input {
+      flex: 1;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 10px;
+      color: var(--fg-primary);
+      font-size: 12px;
+    }
+    .footer-note {
+      margin-top: 16px;
+      font-size: 11px;
+      color: var(--fg-subtle);
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <main class="launcher-card">
+    <img src="./icon-192.png" alt="Kanemberg" class="brand-logo">
+    <h1>KANEMBERG MOBILE</h1>
+    <p class="subtitle">Porteiro Inteligente PWA &middot; Conexão Automática</p>
+
+    <div class="status-pill">
+      <span id="status-dot" class="dot"></span>
+      <span id="status-text">Localizando servidor ativo do dia...</span>
+    </div>
+
+    <div class="url-box">
+      <strong>Destino Detectado</strong>
+      <span id="target-url-display">Verificando tunnel_status.json...</span>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="btn-abrir-agora" class="btn btn-primary hidden">
+        Abrir Kanemberg Mobile Agora
+      </button>
+
+      <button type="button" id="btn-ler-qr-caixa" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+        <span>Ler QR Code do Caixa</span>
+      </button>
+
+      <button type="button" id="btn-abrir-ip-local" class="btn btn-secondary hidden">
+        Abrir via Wi-Fi Local (LAN)
+      </button>
+
+      <button type="button" id="btn-instalar-pwa" class="btn btn-secondary hidden">
+        Instalar Aplicativo na Tela Inicial
+      </button>
+    </div>
+
+    <div id="qr-reader-box" class="hidden"></div>
+
+    <form id="form-manual-url" class="manual-box">
+      <input type="url" id="input-manual-url" placeholder="Ou cole o link https://...trycloudflare.com">
+      <button type="submit" class="btn btn-secondary" style="width:auto;padding:9px 12px;">Ir</button>
+    </form>
+
+    <p class="footer-note">
+      Este lançador HTTPS sincroniza automaticamente o endereço diário do túnel Cloudflare da loja.
+    </p>
+  </main>
+
+  <script>
+    (function () {
+      const STORAGE_TUNNEL = "kanemberg_last_tunnel_url";
+      const STORAGE_IP = "kanemberg_last_local_ip";
+
+      const dot = document.getElementById("status-dot");
+      const statusText = document.getElementById("status-text");
+      const targetDisplay = document.getElementById("target-url-display");
+      const btnAbrir = document.getElementById("btn-abrir-agora");
+      const btnQr = document.getElementById("btn-ler-qr-caixa");
+      const btnIpLocal = document.getElementById("btn-abrir-ip-local");
+      const btnInstalar = document.getElementById("btn-instalar-pwa");
+      const qrBox = document.getElementById("qr-reader-box");
+      const formManual = document.getElementById("form-manual-url");
+      const inputManual = document.getElementById("input-manual-url");
+
+      let urlAtiva = "";
+      let ipLocal = localStorage.getItem(STORAGE_IP) || "";
+      let qrScanner = null;
+      let deferredPrompt = null;
+
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(function () {});
+        });
+      }
+
+      window.addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        btnInstalar.classList.remove("hidden");
+      });
+
+      btnInstalar.addEventListener("click", async function () {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        btnInstalar.classList.add("hidden");
+      });
+
+      function normalizarUrl(u) {
+        if (!u) return "";
+        const limpo = String(u).trim().replace(/\/+$/, "");
+        if (limpo.startsWith("http://") || limpo.startsWith("https://")) {
+          return limpo;
+        }
+        return "";
+      }
+
+      function redirecionarPara(destino) {
+        const urlFinal = normalizarUrl(destino);
+        if (!urlFinal) return;
+        if (urlFinal.includes("trycloudflare.com")) {
+          localStorage.setItem(STORAGE_TUNNEL, urlFinal);
+        } else {
+          localStorage.setItem(STORAGE_IP, urlFinal);
+        }
+        statusText.textContent = "Conectando ao servidor Kanemberg...";
+        dot.className = "dot ok";
+        targetDisplay.textContent = urlFinal;
+        window.location.replace(urlFinal + "/app");
+      }
+
+      async function descobrirServidorAtivo() {
+        const params = new URLSearchParams(window.location.search);
+        const paramTunnel = normalizarUrl(params.get("tunnel") || params.get("url"));
+        const paramIp = normalizarUrl(params.get("ip"));
+
+        if (paramIp) {
+          ipLocal = paramIp;
+          localStorage.setItem(STORAGE_IP, ipLocal);
+        }
+        if (paramTunnel) {
+          redirecionarPara(paramTunnel);
+          return;
+        }
+
+        try {
+          const resp = await fetch("./tunnel_status.json?t=" + Date.now(), { cache: "no-store" });
+          if (resp.ok) {
+            const dados = await resp.json();
+            if (dados.url_ativa) {
+              urlAtiva = normalizarUrl(dados.url_ativa);
+              if (urlAtiva) localStorage.setItem(STORAGE_TUNNEL, urlAtiva);
+            }
+            if (dados.ip_local) {
+              ipLocal = normalizarUrl(dados.ip_local);
+              if (ipLocal) localStorage.setItem(STORAGE_IP, ipLocal);
+            }
+          }
+        } catch (_e) {
+          // Fallback para valores salvos no localStorage
+        }
+
+        if (!urlAtiva) {
+          urlAtiva = normalizarUrl(localStorage.getItem(STORAGE_TUNNEL));
+        }
+
+        if (ipLocal) {
+          btnIpLocal.classList.remove("hidden");
+          btnIpLocal.onclick = function () {
+            window.location.href = ipLocal + "/app";
+          };
+        }
+
+        if (urlAtiva) {
+          targetDisplay.textContent = urlAtiva;
+          btnAbrir.classList.remove("hidden");
+          btnAbrir.onclick = function () {
+            redirecionarPara(urlAtiva);
+          };
+
+          // Redireciona automaticamente após 450ms se não estiver com ?noauto=1
+          if (!params.get("noauto")) {
+            statusText.textContent = "Túnel HTTPS ativo encontrado. Redirecionando...";
+            dot.className = "dot ok";
+            setTimeout(function () {
+              redirecionarPara(urlAtiva);
+            }, 450);
+          } else {
+            statusText.textContent = "Túnel HTTPS pronto para conexão.";
+            dot.className = "dot ok";
+          }
+        } else if (ipLocal) {
+          targetDisplay.textContent = ipLocal + " (Rede Wi-Fi Local)";
+          statusText.textContent = "Túnel HTTPS ainda não publicado hoje. Use o QR Code ou Wi-Fi Local.";
+          dot.className = "dot warn";
+        } else {
+          targetDisplay.textContent = "Nenhum túnel ativo detectado ainda.";
+          statusText.textContent = "Leia o QR Code do Caixa para sincronizar o link do dia.";
+          dot.className = "dot warn";
+        }
+      }
+
+      btnQr.addEventListener("click", async function () {
+        if (!window.Html5Qrcode) {
+          alert("Leitor de câmera carregando. Tente novamente em 1 segundo.");
+          return;
+        }
+        if (qrScanner) {
+          try { await qrScanner.stop(); } catch (_e) {}
+          qrScanner = null;
+          qrBox.classList.add("hidden");
+          return;
+        }
+        qrBox.classList.remove("hidden");
+        qrScanner = new window.Html5Qrcode("qr-reader-box");
+        try {
+          await qrScanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 220, height: 220 } },
+            function (decodedText) {
+              const lido = normalizarUrl(decodedText.replace(/\/app\/?$/, ""));
+              if (lido) {
+                qrScanner.stop().catch(function () {});
+                redirecionarPara(lido);
+              }
+            },
+            function () {}
+          );
+        } catch (_err) {
+          qrBox.classList.add("hidden");
+          qrScanner = null;
+          alert("Não foi possível acessar a câmera. Cole o link no campo abaixo.");
+        }
+      });
+
+      formManual.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const val = normalizarUrl(inputManual.value.replace(/\/app\/?$/, ""));
+        if (val) {
+          redirecionarPara(val);
+        }
+      });
+
+      descobrirServidorAtivo();
+    })();
+  </script>
+</body>
+</html>
