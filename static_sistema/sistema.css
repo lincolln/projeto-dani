@@ -557,8 +557,8 @@ html[data-theme="light"] .pill-grupo {
    ========================================================================== */
 .grid-vitrine {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 14px;
   padding-top: 4px;
   align-items: stretch;
 }
@@ -566,12 +566,13 @@ html[data-theme="light"] .pill-grupo {
 .card-vitrine {
   --cor-grupo: #00d2ff;
   background-color: var(--bg-card);
-  border: 2px solid var(--cor-grupo);
-  border-radius: 14px;
-  padding: 16px 18px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 11px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 7px;
   box-shadow: var(--shadow-card);
   transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
               box-shadow 0.18s ease,
@@ -581,161 +582,116 @@ html[data-theme="light"] .pill-grupo {
 }
 
 .card-vitrine:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-card-hover),
-              0 0 18px color-mix(in srgb, var(--cor-grupo) 26%, transparent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
 }
 
-/* Topo do Card: Badge da Categoria à esquerda + Preço Verde Neon à direita */
+/* Topo do Card: Identidade à esquerda + Pílula de Preço Verde à direita */
 .card-topo-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 6px;
+  gap: 8px;
+  margin-bottom: 0;
 }
 
 .badge-categoria-card {
-  --cor-grupo: #00d2ff;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background-color: #0f172a;
-  border: 1px solid var(--cor-grupo);
-  color: var(--cor-grupo);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.3;
-  white-space: nowrap;
+  display: none !important;
 }
 
 .card-preco-venda {
-  font-size: 18px;
+  font-size: 13.5px;
   font-weight: 800;
-  color: #22c55e;
+  color: #34d399;
+  background-color: #0f2922;
+  border: 1px solid #10b98140;
+  padding: 3px 9px;
+  border-radius: 7px;
   white-space: nowrap;
   letter-spacing: -0.01em;
+  line-height: 1.25;
+  flex-shrink: 0;
 }
 
-/* Corpo: Modelo + Marca e Corte | Tecido */
+/* Corpo: Modelo + Subtítulo (Marca · Corte · Tecido) + Quadradinhos de Cores */
 .card-corpo-info {
-  margin-bottom: 10px;
+  min-width: 0;
+  flex: 1;
+  margin-bottom: 0;
 }
 
 .card-titulo-modelo {
-  font-size: 17px;
+  font-size: 14.5px;
   font-weight: 800;
   color: var(--fg-primary);
-  line-height: 1.3;
+  line-height: 1.25;
   word-break: break-word;
+  margin: 0;
 }
 
 .card-subtitulo-peca {
-  font-size: 13px;
-  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--fg-muted);
   margin-top: 3px;
 }
 
-/* Linha de Status (Badge Quantidade Total) e Cores (Bolinhas) */
-.card-status-cores-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
 .badge-qtd-estoque {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 11px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.badge-qtd-estoque.estoque-ok {
-  background-color: #1e3a5f;
-  color: #60a5fa;
-}
-
-.badge-qtd-estoque.estoque-baixo {
-  background-color: #382814;
-  color: #fbbf24;
-}
-
-.badge-qtd-estoque.estoque-esgotado {
-  background-color: #3b1824;
-  color: #f87171;
-}
-
-html[data-theme="light"] .badge-qtd-estoque.estoque-ok {
-  background-color: #dbeafe;
-  color: #2563eb;
-}
-
-html[data-theme="light"] .badge-qtd-estoque.estoque-baixo {
-  background-color: #fef3c7;
-  color: #d97706;
-}
-
-html[data-theme="light"] .badge-qtd-estoque.estoque-esgotado {
-  background-color: #fee2e2;
-  color: #dc2626;
+  display: none !important;
 }
 
 .card-bolinhas-cores {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   flex-wrap: wrap;
-  justify-content: flex-end;
 }
 
 .bolinha-cor-item {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid rgba(226, 232, 240, 0.85);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: none;
+  flex-shrink: 0;
   transition: transform 0.15s ease;
 }
 
 .bolinha-cor-item:hover {
-  transform: scale(1.22);
+  transform: scale(1.18);
 }
 
-/* Divisor interno do card */
+/* Divisor interno único do card */
 .card-divisor {
   height: 1px;
-  background-color: var(--border-color);
-  opacity: 0.65;
-  margin-bottom: 11px;
+  background-color: rgba(255, 255, 255, 0.06);
+  opacity: 1;
+  margin: 7px 0;
 }
 
-/* Grade de Tamanhos (Pills) */
+/* Grade de Tamanhos (Pills Compactas) */
 .card-grade-tamanhos {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 6px;
   align-items: center;
-  min-height: 36px;
-  margin-bottom: 12px;
+  min-height: 28px;
+  margin-bottom: 2px;
 }
 
 .pill-tamanho {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 11px;
-  border-radius: 8px;
+  padding: 4px 9px;
+  border-radius: 7px;
   background-color: var(--bg-card-inner);
   border: 1px solid var(--border-color);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.2;
   transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.12s ease;
 }
@@ -762,7 +718,7 @@ html[data-theme="light"] .badge-qtd-estoque.estoque-esgotado {
 
 /* Tamanhos zerados (P x0) ficam riscados e opacos */
 .pill-tamanho.zerado {
-  opacity: 0.45;
+  opacity: 0.42;
   border-color: #1e293b;
   cursor: default;
 }
@@ -773,17 +729,19 @@ html[data-theme="light"] .badge-qtd-estoque.estoque-esgotado {
   color: #64748b;
 }
 
-/* Rodapé do Card: Custo discreto à esquerda + 5 Botões de Ação à direita */
+/* Rodapé do Card: Custo discreto à esquerda + 5 Botões de Ação Compactos à direita */
 .card-rodape-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding-top: 2px;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: auto;
 }
 
 .card-custo-label {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--fg-muted);
   white-space: nowrap;
@@ -792,17 +750,17 @@ html[data-theme="light"] .badge-qtd-estoque.estoque-esgotado {
 .card-acoes-grupo {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .btn-card-acao {
-  width: 36px;
-  height: 34px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: 14px;
   background-color: var(--bg-card-inner);
   border: 1px solid var(--border-color);
   color: var(--fg-primary);
@@ -5706,8 +5664,8 @@ html[data-theme="light"] .badge-qtd-estoque.estoque-esgotado {
 }
 
 .btn-card-acao svg {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
   stroke: currentColor;
   flex-shrink: 0;
   pointer-events: none;

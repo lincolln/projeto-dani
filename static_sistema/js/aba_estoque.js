@@ -92,13 +92,7 @@ function renderizarVitrine() {
 
 function montarHtmlCardProduto(p, index = 0) {
   const pid = p.id || p.produto_id;
-  const grupo = obterGrupoProduto(p.modelo_nome, p.tipo_peca);
   const vars = Array.isArray(p.variacoes) ? p.variacoes : [];
-
-  const estoqueTotal =
-    p.estoque_total !== undefined && p.estoque_total !== null
-      ? num(p.estoque_total)
-      : vars.reduce((acc, v) => acc + num(v.estoque), 0);
 
   const precoVenda =
     num(p.preco_venda) ||
@@ -108,31 +102,13 @@ function montarHtmlCardProduto(p, index = 0) {
     num(p.preco_custo) ||
     (vars.length ? Math.max(...vars.map((v) => num(v.preco_custo))) : 0);
 
-  // Título: Modelo — Marca
+  // Título: Modelo (destaque) e Subtítulo compacto: Marca · Corte · Tecido
   const modeloStr = String(p.modelo_nome || p.tipo_peca || "Produto").trim();
-  const marcaStr = valorValido(p.marca) ? String(p.marca).trim() : "";
-  const tituloCard = marcaStr ? `${modeloStr} — ${marcaStr}` : modeloStr;
-
-  // Subtítulo: Corte | Tecido (ocultando vazios ou "N/A")
-  const partesSub = [p.corte, p.tecido]
+  const partesSub = [p.marca, p.corte, p.tecido]
     .filter(valorValido)
     .map((item) => String(item).trim());
-  const subtituloHtml = partesSub.length
-    ? `<div class="card-subtitulo-peca">${escapeHtml(partesSub.join(" | "))}</div>`
-    : "";
 
-  // Badge de quantidade total em estoque
-  let classeBadgeEstoque = "estoque-ok";
-  let textoBadgeEstoque = `${estoqueTotal} un. em estoque`;
-  if (estoqueTotal <= 0) {
-    classeBadgeEstoque = "estoque-esgotado";
-    textoBadgeEstoque = "Esgotado";
-  } else if (estoqueTotal <= 3) {
-    classeBadgeEstoque = "estoque-baixo";
-    textoBadgeEstoque = `${estoqueTotal} un. restantes`;
-  }
-
-  // Bolinhas de cores cadastradas (cor_hex)
+  // Quadradinhos de cores cadastradas (cor_hex)
   const listaCores = extrairCoresProduto(p);
   const bolinhasHtml = listaCores.length
     ? `<div class="card-bolinhas-cores">
@@ -144,7 +120,15 @@ function montarHtmlCardProduto(p, index = 0) {
           )
           .join("")}
       </div>`
-    : `<div></div>`;
+    : "";
+
+  const subtituloHtml =
+    partesSub.length || bolinhasHtml
+      ? `<div class="card-subtitulo-peca">
+          ${partesSub.length ? `<span>${escapeHtml(partesSub.join(" · "))}</span>` : ""}
+          ${bolinhasHtml}
+        </div>`
+      : "";
 
   // Grade de Tamanhos (Pills: P x0 riscado, M x4, G x1)
   const tamanhosOrdenados = agruparTamanhosProduto(p);
@@ -180,37 +164,24 @@ function montarHtmlCardProduto(p, index = 0) {
   return `
     <article class="card-vitrine" data-produto-id="${pid}" style="--card-index: ${index};">
       <div>
-        <!-- Topo do Card: Categoria Corporativa Neutra + Preço -->
+        <!-- Cabeçalho Compacto (Idêntico ao Card de Venda/PDV) -->
         <div class="card-topo-row">
-          <span class="badge-categoria-card">
-            <span>${escapeHtml(grupo.nome)}</span>
-          </span>
+          <div class="card-corpo-info">
+            <h2 class="card-titulo-modelo" title="${escapeHtml(modeloStr)}">${escapeHtml(modeloStr)}</h2>
+            ${subtituloHtml}
+          </div>
           <span class="card-preco-venda">${formatarMoeda(precoVenda)}</span>
         </div>
 
-        <!-- Corpo: Nome do Modelo + Marca e Corte | Tecido -->
-        <div class="card-corpo-info">
-          <h2 class="card-titulo-modelo">${escapeHtml(tituloCard)}</h2>
-          ${subtituloHtml}
-        </div>
-
-        <!-- Linha de Status (Qtd Total) e Bolinhas de Cores -->
-        <div class="card-status-cores-row">
-          <span class="badge-qtd-estoque ${classeBadgeEstoque}">${escapeHtml(textoBadgeEstoque)}</span>
-          ${bolinhasHtml}
-        </div>
-
         <div class="card-divisor"></div>
 
-        <!-- Grade de Tamanhos (Pills) -->
+        <!-- Grade de Tamanhos Enxuta -->
         <div class="card-grade-tamanhos">
           ${pillsTamanhosHtml}
         </div>
-
-        <div class="card-divisor"></div>
       </div>
 
-      <!-- Rodapé do Card: Custo à esquerda + 5 Botões de Ação à direita -->
+      <!-- Rodapé do Card: Custo à esquerda + 5 Botões de Ação Compactos à direita -->
       <div class="card-rodape-row">
         <span class="card-custo-label">${escapeHtml(formatarCustoCurto(precoCusto))}</span>
 
@@ -222,7 +193,7 @@ function montarHtmlCardProduto(p, index = 0) {
             data-produto-id="${pid}"
             title="Enviar para Nova Venda"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="9" cy="21" r="1"></circle>
               <circle cx="20" cy="21" r="1"></circle>
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
@@ -236,7 +207,7 @@ function montarHtmlCardProduto(p, index = 0) {
             data-produto-id="${pid}"
             title="Detalhes e Calculadora de Margem"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="4" y="2" width="16" height="20" rx="2"></rect>
               <line x1="8" y1="6" x2="16" y2="6"></line>
               <line x1="16" y1="14" x2="16" y2="18"></line>
@@ -257,7 +228,7 @@ function montarHtmlCardProduto(p, index = 0) {
             data-produto-id="${pid}"
             title="Imprimir Etiquetas QR Code"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="6 9 6 2 18 2 18 9"></polyline>
               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
               <rect x="6" y="14" width="12" height="8"></rect>
@@ -271,7 +242,7 @@ function montarHtmlCardProduto(p, index = 0) {
             data-produto-id="${pid}"
             title="Editar Produto e Estoque"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M12 20h9"></path>
               <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
             </svg>
@@ -284,7 +255,7 @@ function montarHtmlCardProduto(p, index = 0) {
             data-produto-id="${pid}"
             title="Excluir Produto"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
