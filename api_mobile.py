@@ -142,12 +142,16 @@ app = FastAPI(
     version="2.6.0",
 )
 
+# CORS total: o app instalado num túnel antigo (ou no IP local) precisa chamar
+# o túnel novo via fetch(). A autenticação usa header Bearer (não cookies), então
+# allow_credentials=False permite responder literalmente "Access-Control-Allow-Origin: *".
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    max_age=86400,
 )
 
 acesso_mobile_ativo: bool = True
@@ -2720,6 +2724,7 @@ def sincronizar_porteiro_github() -> None:
     """Faz commit e push silencioso de docs/tunnel_status.json em background sem travar o servidor."""
     def _worker():
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        env_git = dict(os.environ, GIT_TERMINAL_PROMPT="0")
         try:
             subprocess.run(
                 ["git", "add", "docs/tunnel_status.json"],
@@ -2727,21 +2732,25 @@ def sincronizar_porteiro_github() -> None:
                 capture_output=True,
                 timeout=15,
                 creationflags=flags,
+                env=env_git,
             )
+            # Commit restrito ao arquivo do túnel (não leva outras alterações em stage)
             res_commit = subprocess.run(
-                ["git", "commit", "-m", "chore: update active tunnel url"],
+                ["git", "commit", "-m", "chore: update tunnel", "--", "docs/tunnel_status.json"],
                 cwd=BASE_DIR,
                 capture_output=True,
                 timeout=15,
                 creationflags=flags,
+                env=env_git,
             )
             if res_commit.returncode == 0:
                 subprocess.run(
                     ["git", "push"],
                     cwd=BASE_DIR,
                     capture_output=True,
-                    timeout=25,
+                    timeout=40,
                     creationflags=flags,
+                    env=env_git,
                 )
         except Exception:
             pass

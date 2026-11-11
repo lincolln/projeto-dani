@@ -22,6 +22,8 @@
 
   <!-- Leitor de QR Code -->
   <script src="https://unpkg.com/html5-qrcode"></script>
+  <!-- Descoberta dinâmica do servidor (API_BASE) — precisa carregar antes do app.js -->
+  <script src="/static/conexao_dinamica.js?v=1"></script>
   <script src="/static/app.js?v=5" defer></script>
 </head>
 <body>
@@ -52,6 +54,19 @@
       <p id="login-erro" class="msg-erro hidden"></p>
 
       <button type="submit" id="btn-login" class="btn btn-primario btn-bloco btn-grande">Acessar Painel</button>
+
+      <button type="button" id="btn-sync-servidor" class="btn btn-secundario btn-bloco btn-sm" style="margin-top:10px;opacity:.85;">
+        Sincronizar via QR Code / Wi-Fi
+      </button>
+      <div id="sync-servidor-box" class="hidden" style="margin-top:10px;text-align:left;">
+        <p id="sync-servidor-status" style="font-size:12px;opacity:.75;margin:0 0 8px;word-break:break-all;">Verificando servidor...</p>
+        <div id="sync-qr-reader" style="border-radius:10px;overflow:hidden;"></div>
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <input type="url" id="sync-url-manual" placeholder="https://...trycloudflare.com ou http://192.168.x.x:8000"
+                 autocapitalize="none" autocorrect="off" spellcheck="false" style="flex:1;min-width:0;">
+          <button type="button" id="btn-sync-aplicar" class="btn btn-secundario btn-sm">Aplicar</button>
+        </div>
+      </div>
     </form>
   </section>
 
@@ -614,59 +629,16 @@
     <div class="spinner"></div>
   </div>
 
-  <!-- Registro PWA Service Worker + Reconexão Automática via Porteiro Fixo (GitHub Pages) -->
+  <!-- Registro PWA Service Worker (shell offline-first). A troca de servidor
+       é feita por /static/conexao_dinamica.js sem sair da origem instalada. -->
   <script>
-    (function () {
-      const PORTEIRO_STATUS_URL = "https://lincolln.github.io/projeto-dani/tunnel_status.json";
-      const STORAGE_IP = "kanemberg_last_local_ip";
-      const STORAGE_TUNNEL = "kanemberg_last_tunnel_url";
-
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", function () {
-          navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(function () {});
-        });
-      }
-
-      async function sincronizarOuReconectarPorteiro() {
-        try {
-          const respLocal = await fetch("/api/sistema/tunnel-status?t=" + Date.now(), { cache: "no-store" });
-          if (respLocal.ok) {
-            const dados = await respLocal.json();
-            if (dados.ip_local) localStorage.setItem(STORAGE_IP, dados.ip_local);
-            if (dados.url_ativa) localStorage.setItem(STORAGE_TUNNEL, dados.url_ativa);
-            return;
-          }
-          if (respLocal.status === 530 || respLocal.status === 502 || respLocal.status === 504) {
-            throw new Error("Tunel expirado");
-          }
-        } catch (_err) {
-          // Servidor atual não respondeu (ex: túnel trycloudflare de ontem expirou)
-          try {
-            const respPorteiro = await fetch(PORTEIRO_STATUS_URL + "?t=" + Date.now(), { cache: "no-store" });
-            if (respPorteiro.ok) {
-              const info = await respPorteiro.json();
-              if (info.ip_local) localStorage.setItem(STORAGE_IP, info.ip_local);
-              const novaUrl = (info.url_ativa || "").trim().replace(/\/+$/, "");
-              const origemAtual = window.location.origin.replace(/\/+$/, "");
-              if (novaUrl && novaUrl.startsWith("https://") && novaUrl !== origemAtual) {
-                localStorage.setItem(STORAGE_TUNNEL, novaUrl);
-                window.location.replace(novaUrl + "/app");
-                return;
-              }
-            }
-          } catch (_e2) {
-            const ipSalvo = (localStorage.getItem(STORAGE_IP) || "").trim().replace(/\/+$/, "");
-            if (ipSalvo && ipSalvo !== window.location.origin.replace(/\/+$/, "")) {
-              // Mantém IP salvo disponível caso o usuário esteja na mesma rede Wi-Fi
-              console.info("IP local de fallback disponível:", ipSalvo);
-            }
-          }
-        }
-      }
-
-      window.addEventListener("load", sincronizarOuReconectarPorteiro);
-      window.addEventListener("online", sincronizarOuReconectarPorteiro);
-    })();
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker
+          .register("/sw.js", { scope: "/", updateViaCache: "none" })
+          .catch(function () {});
+      });
+    }
   </script>
 </body>
 </html>
