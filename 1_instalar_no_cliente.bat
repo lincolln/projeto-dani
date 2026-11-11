@@ -77,32 +77,19 @@ if not defined CLOUDFLARED (
 echo        OK: Cloudflare configurado!
 
 rem --------------------------------------------------------------------------
-rem  [4/4] Criar atalhos na Area de Trabalho
+rem  [4/4] Criar atalho oficial "Sistema Kanemberg" na Area de Trabalho
 rem --------------------------------------------------------------------------
 echo.
-echo  [4/4] Criando atalhos na Area de Trabalho...
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$ws = New-Object -ComObject WScript.Shell; " ^
-  "$desk = [Environment]::GetFolderPath('Desktop'); " ^
-  "$dir = '%~dp0'.TrimEnd('\'); " ^
-  "$s1 = $ws.CreateShortcut((Join-Path $desk 'Kanemberg - Sistema PC.lnk')); " ^
-  "$s1.TargetPath = Join-Path $dir 'abrir_sistema_pc.bat'; " ^
-  "$s1.WorkingDirectory = $dir; " ^
-  "$s1.Description = 'Abrir Sistema Kanemberg no PC'; " ^
-  "$s1.Save(); " ^
-  "$s2 = $ws.CreateShortcut((Join-Path $desk 'Kanemberg - App Celular HTTPS.lnk')); " ^
-  "$s2.TargetPath = Join-Path $dir 'iniciar_mobile.bat'; " ^
-  "$s2.WorkingDirectory = $dir; " ^
-  "$s2.Description = 'Iniciar Servidor Mobile e Link HTTPS do Celular'; " ^
-  "$s2.Save();"
+echo  [4/4] Gerando icone oficial (.ico) e atalho na Area de Trabalho...
+"%PYTHON_EXE%" "%~dp0Instalar_Atalho_Desktop.py"
 
 echo.
 echo  ============================================================
 echo       === INSTALACAO CONCLUIDA COM SUCESSO! ===
 echo.
-echo   Foram criados 2 atalhos na Area de Trabalho:
-echo     1. "Kanemberg - Sistema PC" (abre o sistema da loja)
-echo     2. "Kanemberg - App Celular HTTPS" (gera o link do celular)
+echo   Foi criado o atalho oficial na Area de Trabalho:
+echo     - "Sistema Kanemberg" (abre o sistema maximizado com
+echo       o servidor minimizado na barra de tarefas)
 echo  ============================================================
 echo.
 pause

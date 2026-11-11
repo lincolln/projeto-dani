@@ -41,10 +41,11 @@ pip install -r requirements.txt
 ---
 
 ### 4. Como Abrir e Entrar no Sistema do Computador (Dia a Dia)
-1. Na pasta do projeto, dê **2 cliques** no arquivo **`Iniciar_Kanemberg.bat`** (recomendamos clicar com o botão direito nele ➔ **Enviar para ➔ Área de trabalho (criar atalho)** para facilitar o uso diário).
-2. **Permissão do Firewall (1ª vez):** Se o Windows Defender Firewall exibir uma janela perguntando sobre o Python/`cloudflared`, marque as duas caixas (**Redes privadas** e **Redes públicas**) e clique em **`Permitir acesso`**.
-3. O sistema iniciará o servidor em segundo plano e abrirá automaticamente o **Painel Administrativo Kanemberg v2** em janela dedicada de aplicativo:
-   - Endereço local do Caixa: **`http://localhost:8000/sistema`**
+1. **Na 1ª vez:** Dê **2 cliques** no arquivo **`Iniciar_Kanemberg.bat`** (ou em **`Criar_Atalho.bat`**). Ele criará automaticamente na sua **Área de Trabalho** o atalho oficial **`Sistema Kanemberg`** com o ícone da loja (`static/icon.ico`).
+2. **Nos dias seguintes:** Basta dar **2 cliques** no atalho **`Sistema Kanemberg`** na sua Área de Trabalho:
+   - O terminal do servidor iniciará **minimizado na barra de tarefas** (`WindowStyle = 7`), sem poluir a tela do caixa, mas permanecendo acessível caso precise consultar logs ou encerrar o processo.
+   - O **Painel Administrativo Kanemberg v2** abrirá automaticamente **maximizado em primeiro plano** em janela dedicada de aplicativo (`http://localhost:8000/sistema`).
+3. **Permissão do Firewall (1ª vez):** Se o Windows Defender Firewall exibir uma janela perguntando sobre o Python/`cloudflared`, marque as duas caixas (**Redes privadas** e **Redes públicas**) e clique em **`Permitir acesso`**.
 
 ---
 
@@ -93,9 +94,10 @@ O sistema conta com um **App Mobile PWA (Progressive Web App)** com tecnologia *
 
 ## Estrutura Principal do Projeto
 
-- **`Iniciar_Kanemberg.bat`** — Inicializador diário do sistema no computador do caixa.
+- **`Iniciar_Kanemberg.bat`** — Inicializador diário do sistema (inicia o servidor minimizado, garante o atalho na Área de Trabalho e abre o painel maximizado).
+- **`Instalar_Atalho_Desktop.py` / `Criar_Atalho.bat`** — Gerador do ícone oficial (`static/icon.ico`) e do atalho **`Sistema Kanemberg.lnk`** (modo minimizado) na Área de Trabalho.
 - **`api_mobile.py`** — Servidor FastAPI unificado (Desktop + Mobile PWA + Gerenciador de Túnel Cloudflare + Backup SQLite).
 - **`loja_daniel_v2.db`** — Banco de dados SQLite local em modo WAL de alta performance.
 - **`static_sistema/`** — Interface Desktop Widescreen (`/sistema`) com Estoque, Cadastro Camaleão, PDV, Fiado e Dashboard Executivo.
-- **`static/`** — Aplicativo Mobile PWA (`/app`) com Service Worker Offline-First e leitor de QR Code.
+- **`static/`** — Aplicativo Mobile PWA (`/app`) com Service Worker Offline-First, leitor de QR Code e ícone oficial (`static/icon.ico`).
 - **`docs/`** — Porteiro Inteligente HTTPS (GitHub Pages) para descoberta automática do túnel diário.
