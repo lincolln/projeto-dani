@@ -18,13 +18,13 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/static/icon-180.png">
   <link rel="icon" type="image/png" href="/static/icon-192.png">
-  <link rel="stylesheet" href="/static/style.css?v=5">
+  <link rel="stylesheet" href="/static/style.css?v=7">
 
   <!-- Leitor de QR Code -->
   <script src="https://unpkg.com/html5-qrcode"></script>
   <!-- Descoberta dinâmica do servidor (API_BASE) — precisa carregar antes do app.js -->
-  <script src="/static/conexao_dinamica.js?v=1"></script>
-  <script src="/static/app.js?v=5" defer></script>
+  <script src="/static/conexao_dinamica.js?v=7"></script>
+  <script src="/static/app.js?v=7" defer></script>
 </head>
 <body>
 
@@ -124,7 +124,7 @@
             <line x1="12" y1="20" x2="12" y2="4"/>
             <line x1="6" y1="20" x2="6" y2="14"/>
           </svg>
-          <span>📊 Caixa</span>
+          <span>Caixa</span>
           <kbd class="atalho-kbd">F4</kbd>
         </button>
       </nav>
@@ -166,26 +166,21 @@
                      autocapitalize="none" autocorrect="off" spellcheck="false">
             </div>
 
-            <div id="filtros-estoque" class="filtros-rapidos">
-              <button type="button" class="chip-filtro ativo" data-filtro="todos">Todos</button>
-              <button type="button" class="chip-filtro" data-filtro="com-estoque">Com Estoque</button>
-              <button type="button" class="chip-filtro" data-filtro="baixo">Estoque Baixo</button>
-              <button type="button" class="chip-filtro" data-filtro="zerado">Esgotados</button>
-            </div>
-
-            <!-- Filtros Rápidos de Grupo Luminescente -->
-            <div id="filtros-grupos-estoque" class="filtros-rapidos filtros-grupos">
-              <button type="button" class="chip-filtro chip-grupo ativo" data-grupo="todos">Todos</button>
-              <button type="button" class="chip-filtro chip-grupo" data-grupo="cima">👕 Cima</button>
-              <button type="button" class="chip-filtro chip-grupo" data-grupo="baixo">👖 Baixo</button>
-              <button type="button" class="chip-filtro chip-grupo" data-grupo="calcados">🩴 Calçados</button>
-              <button type="button" class="chip-filtro chip-grupo" data-grupo="acessorios">⌚ Acessórios</button>
-              <button type="button" class="chip-filtro chip-grupo" data-grupo="perfumaria">🧴 Perfumes</button>
+            <!-- Barra Única Horizontal Combinável (Grupo + Status) -->
+            <div id="filtros-estoque" class="filtros-rapidos filtros-linha-unica" role="toolbar" aria-label="Filtros de estoque">
+              <button type="button" class="chip-filtro chip-todos ativo" data-acao-filtro="limpar">Todos</button>
+              <button type="button" class="chip-filtro chip-grupo" data-grupo="cima">Cima</button>
+              <button type="button" class="chip-filtro chip-grupo" data-grupo="baixo">Baixo</button>
+              <button type="button" class="chip-filtro chip-grupo" data-grupo="calcados">Calçados</button>
+              <button type="button" class="chip-filtro chip-grupo" data-grupo="acessorios">Acessórios</button>
+              <button type="button" class="chip-filtro chip-grupo" data-grupo="perfumaria">Perfumaria</button>
+              <span class="filtro-separador" aria-hidden="true"></span>
+              <button type="button" class="chip-filtro chip-status" data-filtro="com-estoque">Com Estoque</button>
+              <button type="button" class="chip-filtro chip-status" data-filtro="baixo">Estoque Baixo</button>
+              <button type="button" class="chip-filtro chip-status" data-filtro="zerado">Esgotado</button>
             </div>
           </div>
         </div>
-
-        <div id="kpis-estoque" class="kpis-grid"></div>
 
         <div id="lista-estoque" class="lista-cards grid-estoque">
           <p class="vazio">Carregando estoque...</p>
@@ -195,7 +190,7 @@
       <!-- ================= ABA VENDER (PDV) ================= -->
       <section id="aba-vender" class="aba hidden">
         <div class="pdv-grid">
-          <!-- COLUNA ESQUERDA: Leitura + Catálogo Rápido + Vendas de Hoje -->
+          <!-- COLUNA ESQUERDA: Leitura QR / Código -->
           <div class="pdv-col-esquerda">
             <div class="card">
               <div class="bloco-titulo">
@@ -219,35 +214,6 @@
                 <button type="submit" id="btn-adicionar-manual" class="btn btn-secundario">Adicionar</button>
               </form>
             </div>
-
-            <!-- Catálogo Rápido Clicável no PDV -->
-            <div class="card card-catalogo-pdv">
-              <div class="bloco-titulo">
-                <h2>Catálogo Rápido (1 Clique = +1 no Carrinho)</h2>
-              </div>
-              <div class="campo-busca mb-10">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="8"/>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input type="search" id="input-busca-catalogo-pdv" placeholder="Filtrar peça rápida por nome, marca ou tamanho..."
-                       autocapitalize="none" autocorrect="off" spellcheck="false">
-              </div>
-              <div id="lista-catalogo-pdv" class="catalogo-pdv-scroll">
-                <p class="vazio">Carregando peças disponíveis...</p>
-              </div>
-            </div>
-
-            <!-- Histórico de Vendas de Hoje -->
-            <div class="card">
-              <div class="bloco-titulo">
-                <h2>Vendas de Hoje</h2>
-                <span id="resumo-vendas-hoje" class="texto-sucesso font-bold">R$ 0,00</span>
-              </div>
-              <div id="lista-vendas-hoje" class="lista-vendas-hoje">
-                <p class="vazio">Nenhuma venda registrada hoje.</p>
-              </div>
-            </div>
           </div>
 
           <!-- COLUNA DIREITA: Carrinho + Pagamento + Total -->
@@ -258,7 +224,7 @@
                 <button type="button" id="btn-limpar-carrinho" class="btn-link">Limpar Tudo</button>
               </div>
               <div id="lista-carrinho" class="lista-carrinho">
-                <p class="vazio">Nenhum item no carrinho. Escaneie ou clique numa peça.</p>
+                <p class="vazio">Nenhum item no carrinho. Escaneie ou toque num tamanho no Estoque.</p>
               </div>
             </div>
 
@@ -273,19 +239,39 @@
                 <div id="grupo-pagamento" class="grupo-pagamento" role="radiogroup">
                   <label class="opcao-pgto">
                     <input type="radio" name="forma_pagamento" value="DINHEIRO" checked>
-                    <span>💵 Dinheiro</span>
+                    <span>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;">
+                        <rect x="2" y="6" width="20" height="12" rx="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <path d="M6 12h.01M18 12h.01"/>
+                      </svg>Dinheiro
+                    </span>
                   </label>
                   <label class="opcao-pgto">
                     <input type="radio" name="forma_pagamento" value="PIX">
-                    <span>⚡ PIX</span>
+                    <span>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                      </svg>PIX
+                    </span>
                   </label>
                   <label class="opcao-pgto">
                     <input type="radio" name="forma_pagamento" value="CARTAO">
-                    <span>💳 Cartão</span>
+                    <span>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                        <line x1="1" y1="10" x2="23" y2="10"/>
+                      </svg>Cartão
+                    </span>
                   </label>
                   <label class="opcao-pgto opcao-fiado">
                     <input type="radio" name="forma_pagamento" value="FIADO">
-                    <span>📒 Fiado</span>
+                    <span>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                      </svg>Fiado
+                    </span>
                   </label>
                 </div>
               </div>
@@ -354,18 +340,23 @@
       <section id="tab-caixa" class="aba tab-content hidden">
         <div class="cabecalho-pagina">
           <div>
-            <h1 class="titulo-pagina">📊 Resumo Financeiro</h1>
+            <h1 class="titulo-pagina">Resumo Financeiro</h1>
             <p class="subtitulo-pagina">Faturamento bruto, custo das peças vendidas e lucro limpo</p>
           </div>
           <button type="button" id="btn-atualizar-caixa" class="btn btn-secundario btn-sm" title="Atualizar dados">
-            🔄 Atualizar
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"/>
+              <polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            <span>Atualizar</span>
           </button>
         </div>
 
         <!-- SEÇÃO HOJE -->
         <div class="bloco-financeiro">
           <div class="bloco-financeiro-header">
-            <h2 class="titulo-secao-fin">📅 HOJE</h2>
+            <h2 class="titulo-secao-fin">HOJE</h2>
             <span id="fin-hoje-pecas" class="badge-pecas-fin">0 peças vendidas</span>
           </div>
 
@@ -389,23 +380,23 @@
           <!-- Divisão de Hoje por Forma de Pagamento -->
           <div class="card card-pagamentos-hoje">
             <div class="bloco-titulo mb-10">
-              <h3>💳 Divisão de Hoje por Forma de Pagamento</h3>
+              <h3>Divisão de Hoje por Forma de Pagamento</h3>
             </div>
             <div class="grid-pagamentos-hoje">
               <div class="item-pgto-fin">
-                <span class="pgto-label">⚡ PIX</span>
+                <span class="pgto-label">PIX</span>
                 <strong id="fin-pgto-pix">R$ 0,00</strong>
               </div>
               <div class="item-pgto-fin">
-                <span class="pgto-label">💳 Cartão</span>
+                <span class="pgto-label">Cartão</span>
                 <strong id="fin-pgto-cartao">R$ 0,00</strong>
               </div>
               <div class="item-pgto-fin">
-                <span class="pgto-label">💵 Dinheiro</span>
+                <span class="pgto-label">Dinheiro</span>
                 <strong id="fin-pgto-dinheiro">R$ 0,00</strong>
               </div>
               <div class="item-pgto-fin">
-                <span class="pgto-label">📒 Fiado</span>
+                <span class="pgto-label">Fiado</span>
                 <strong id="fin-pgto-fiado">R$ 0,00</strong>
               </div>
             </div>
@@ -415,7 +406,7 @@
         <!-- SEÇÃO ÚLTIMOS 7 DIAS (SEMANA) -->
         <div class="bloco-financeiro mt-14">
           <div class="bloco-financeiro-header">
-            <h2 class="titulo-secao-fin">📆 ÚLTIMOS 7 DIAS (SEMANA)</h2>
+            <h2 class="titulo-secao-fin">ÚLTIMOS 7 DIAS (SEMANA)</h2>
             <span id="fin-semana-pecas" class="badge-pecas-fin">0 peças vendidas</span>
           </div>
 
@@ -479,7 +470,7 @@
           <line x1="12" y1="20" x2="12" y2="4"/>
           <line x1="6" y1="20" x2="6" y2="14"/>
         </svg>
-        <span>📊 Caixa</span>
+        <span>Caixa</span>
       </button>
 
       <button type="button" id="btn-sair" class="tab-btn tab-sair" aria-label="Sair">
@@ -612,7 +603,14 @@
       <div class="bloco-titulo">
         <h2 id="modal-etiquetas-titulo">Etiquetas QR Code</h2>
         <div class="acoes-inline">
-          <button type="button" id="btn-imprimir-etiquetas" class="btn btn-primario btn-sm">🖨️ Imprimir Etiquetas</button>
+          <button type="button" id="btn-imprimir-etiquetas" class="btn btn-primario btn-sm">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9"/>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+              <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+            <span>Imprimir Etiquetas</span>
+          </button>
           <button type="button" id="btn-fechar-etiquetas" class="btn btn-secundario btn-sm">Fechar</button>
         </div>
       </div>

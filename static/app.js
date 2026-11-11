@@ -27,6 +27,7 @@
     role: localStorage.getItem(STORAGE_ROLE) || "",
     abaAtual: "aba-estoque",
     filtroEstoque: "todos",
+    filtroGrupoEstoque: "todos",
     produtos: [],
     clientes: [],
     vendasHoje: [],
@@ -72,18 +73,36 @@
       "aba-estoque": $("tab-estoque"),
       "aba-vender": $("tab-vender"),
       "aba-fiado": $("tab-fiado"),
+      "tab-caixa": $("btn-nav-caixa"),
     },
     sidebarBtns: document.querySelectorAll(".sidebar-btn[data-aba]"),
     abas: {
       "aba-estoque": $("aba-estoque"),
       "aba-vender": $("aba-vender"),
       "aba-fiado": $("aba-fiado"),
+      "tab-caixa": $("tab-caixa"),
     },
+    btnNavCaixa: $("btn-nav-caixa"),
+    btnSidebarCaixa: $("btn-sidebar-caixa"),
+    btnAtualizarCaixa: $("btn-atualizar-caixa"),
+    finHojeBruto: $("fin-hoje-bruto"),
+    finHojeCusto: $("fin-hoje-custo"),
+    finHojeLucro: $("fin-hoje-lucro"),
+    finHojePecas: $("fin-hoje-pecas"),
+    finPgtoPix: $("fin-pgto-pix"),
+    finPgtoCartao: $("fin-pgto-cartao"),
+    finPgtoDinheiro: $("fin-pgto-dinheiro"),
+    finPgtoFiado: $("fin-pgto-fiado"),
+    finSemanaBruto: $("fin-semana-bruto"),
+    finSemanaCusto: $("fin-semana-custo"),
+    finSemanaLucro: $("fin-semana-lucro"),
+    finSemanaPecas: $("fin-semana-pecas"),
 
     // Estoque
     btnNovoProduto: $("btn-novo-produto"),
     inputBuscaEstoque: $("input-busca-estoque"),
     filtrosEstoque: $("filtros-estoque"),
+    filtrosGruposEstoque: $("filtros-grupos-estoque"),
     kpisEstoque: $("kpis-estoque"),
     listaEstoque: $("lista-estoque"),
 
@@ -193,6 +212,69 @@
     return typeof hex === "string" && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex.trim());
   }
 
+  // -------------------------------------------------------
+  // CLASSIFICAÇÃO LUMINESCENTE DE GRUPOS (ESTOQUE)
+  // -------------------------------------------------------
+  const GRUPOS_PRODUTO = {
+    cima: {
+      nome: "Parte de Cima",
+      emoji: "",
+      rotulo: "Cima",
+      cor: "#00d2ff",
+      classe: "card-grupo-cima",
+      badgeClasse: "badge-grupo-cima",
+      palavras: ["blusa", "camisa", "camiseta", "casaco", "vestido", "regata", "cropped", "sueter", "moletom", "polo", "jaqueta"],
+    },
+    baixo: {
+      nome: "Parte de Baixo / Praia",
+      emoji: "",
+      rotulo: "Baixo",
+      cor: "#52b788",
+      classe: "card-grupo-baixo",
+      badgeClasse: "badge-grupo-baixo",
+      palavras: ["calça", "calca", "shorts", "short", "bermuda", "sunga", "saia"],
+    },
+    calcados: {
+      nome: "Calçados / Meias",
+      emoji: "",
+      rotulo: "Calçados",
+      cor: "#ff7b00",
+      classe: "card-grupo-calcados",
+      badgeClasse: "badge-grupo-calcados",
+      palavras: ["chinelo", "meia", "sandalia", "sandália", "tenis", "tênis", "sapato"],
+    },
+    acessorios: {
+      nome: "Acessórios",
+      emoji: "",
+      rotulo: "Acessórios",
+      cor: "#ff1744",
+      classe: "card-grupo-acessorios",
+      badgeClasse: "badge-grupo-acessorios",
+      palavras: ["boné", "bone", "óculos", "oculos", "relógio", "relogio", "cinto", "carteira", "bolsa"],
+    },
+    perfumaria: {
+      nome: "Perfumaria",
+      emoji: "",
+      rotulo: "Perfumaria",
+      cor: "#ffd700",
+      classe: "card-grupo-perfumaria",
+      badgeClasse: "badge-grupo-perfumaria",
+      palavras: ["perfume", "colonia", "colônia", "fragrancia", "fragrância", "desodorante"],
+    },
+  };
+
+  function obterCorGrupo(modeloNome, tipoPeca = "") {
+    const texto = `${modeloNome || ""} ${tipoPeca || ""}`.toLowerCase().trim();
+    for (const [chave, dados] of Object.entries(GRUPOS_PRODUTO)) {
+      for (const p of dados.palavras) {
+        if (texto.startsWith(p) || texto.includes(` ${p}`)) {
+          return { chave, ...dados };
+        }
+      }
+    }
+    return { chave: "cima", ...GRUPOS_PRODUTO.cima };
+  }
+
   function debounce(fn, ms) {
     let timer = null;
     return (...args) => {
@@ -280,14 +362,25 @@
   }
 
   async function api(caminho, { metodo = "GET", corpo = null, comLoader = false, autenticado = true } = {}) {
-    const headers = { Accept: "application/json" };
+    const headers = {
+      Accept: "application/json",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+    };
     if (corpo !== null) headers["Content-Type"] = "application/json";
     if (autenticado && estado.token) headers.Authorization = `Bearer ${estado.token}`;
+
+    // Cache Busting p/ iOS/Safari em todas as requisições GET
+    let urlFinal = API_BASE + caminho;
+    if (metodo.toUpperCase() === "GET" && !/[?&]_t=/.test(urlFinal)) {
+      const sep = urlFinal.includes("?") ? "&" : "?";
+      urlFinal = `${urlFinal}${sep}_t=${Date.now()}`;
+    }
 
     if (comLoader) mostrarLoader();
     let resposta;
     try {
-      resposta = await fetch(API_BASE + caminho, {
+      resposta = await fetch(urlFinal, {
         method: metodo,
         headers,
         body: corpo !== null ? JSON.stringify(corpo) : undefined,
@@ -382,15 +475,21 @@
   function abrirApp() {
     el.telaLogin.classList.add("hidden");
     el.app.classList.remove("hidden");
-    const papel = estado.role === "admin" ? "Administrador" : "Vendedor";
+    const ehAdmin = estado.role === "admin";
+    const papel = ehAdmin ? "Administrador" : "Vendedor";
     const infoUsuario = `${estado.usuario} · ${papel}`;
     el.topoUsuario.textContent = infoUsuario;
     if (el.sidebarUsuario) el.sidebarUsuario.textContent = infoUsuario;
+
+    // Controle de Permissão: Vendedores comuns não veem a aba Caixa (lucro líquido / custo)
+    if (el.btnNavCaixa) el.btnNavCaixa.classList.toggle("hidden", !ehAdmin);
+    if (el.btnSidebarCaixa) el.btnSidebarCaixa.classList.toggle("hidden", !ehAdmin);
 
     trocarAba("aba-estoque", true);
     carregarEstoque("");
     carregarClientes();
     carregarVendasHoje();
+    if (ehAdmin) carregarResumoFinanceiro();
   }
 
   function encerrarSessao(mensagem) {
@@ -411,6 +510,14 @@
     el.inputBuscaEstoque.value = "";
     el.inputBuscaFiado.value = "";
     el.inputDesconto.value = "";
+    estado.filtroEstoque = "todos";
+    estado.filtroGrupoEstoque = "todos";
+    if (el.filtrosEstoque) {
+      el.filtrosEstoque.querySelectorAll(".chip-filtro").forEach((b) => b.classList.toggle("ativo", b.dataset.filtro === "todos"));
+    }
+    if (el.filtrosGruposEstoque) {
+      el.filtrosGruposEstoque.querySelectorAll(".chip-grupo").forEach((b) => b.classList.toggle("ativo", b.dataset.grupo === "todos"));
+    }
     selecionarFormaPagamento("DINHEIRO");
     renderizarCarrinho();
 
@@ -422,7 +529,11 @@
   // -------------------------------------------------------
   // NAVEGAÇÃO POR ABAS (MOBILE TAB BAR + PC SIDEBAR)
   // -------------------------------------------------------
+  const ABAS_ADMIN = ["tab-caixa"];
+
   function trocarAba(abaId, forcar = false) {
+    if (abaId === "aba-caixa") abaId = "tab-caixa";
+    if (ABAS_ADMIN.includes(abaId) && estado.role !== "admin") return;
     if (!el.abas[abaId]) return;
     if (!forcar && estado.abaAtual === abaId) return;
 
@@ -431,8 +542,12 @@
     }
 
     estado.abaAtual = abaId;
-    Object.entries(el.abas).forEach(([id, secao]) => secao.classList.toggle("hidden", id !== abaId));
-    Object.entries(el.tabs).forEach(([id, botao]) => botao.classList.toggle("ativo", id === abaId));
+    Object.entries(el.abas).forEach(([id, secao]) => {
+      if (secao) secao.classList.toggle("hidden", id !== abaId);
+    });
+    Object.entries(el.tabs).forEach(([id, botao]) => {
+      if (botao) botao.classList.toggle("ativo", id === abaId);
+    });
     el.sidebarBtns.forEach((btn) => btn.classList.toggle("ativo", btn.dataset.aba === abaId));
     el.conteudo.scrollTop = 0;
 
@@ -447,18 +562,58 @@
       renderizarCatalogoPdv();
       carregarVendasHoje();
     }
+    if (abaId === "tab-caixa") {
+      carregarResumoFinanceiro();
+    }
+  }
+
+  // -------------------------------------------------------
+  // ABA CAIXA / GANHOS (RESUMO FINANCEIRO — ADMIN)
+  // -------------------------------------------------------
+  async function carregarResumoFinanceiro() {
+    if (estado.role !== "admin") return;
+    try {
+      const dados = await api(`/api/financeiro/resumo?_t=${Date.now()}`);
+      if (!dados) return;
+
+      const hoje = dados.hoje || {};
+      const semana = dados.semana || {};
+      const pgto = dados.por_pagamento_hoje || {};
+
+      if (el.finHojeBruto) el.finHojeBruto.textContent = brl(hoje.faturamento_bruto);
+      if (el.finHojeCusto) el.finHojeCusto.textContent = brl(hoje.custo_total);
+      if (el.finHojeLucro) el.finHojeLucro.textContent = brl(hoje.lucro_liquido);
+      if (el.finHojePecas) el.finHojePecas.textContent = `${num(hoje.pecas_vendidas)} peça(s) vendida(s)`;
+
+      if (el.finPgtoPix) el.finPgtoPix.textContent = brl(pgto.PIX);
+      if (el.finPgtoCartao) el.finPgtoCartao.textContent = brl(pgto.CARTAO);
+      if (el.finPgtoDinheiro) el.finPgtoDinheiro.textContent = brl(pgto.DINHEIRO);
+      if (el.finPgtoFiado) el.finPgtoFiado.textContent = brl(pgto.FIADO);
+
+      if (el.finSemanaBruto) el.finSemanaBruto.textContent = brl(semana.faturamento_bruto);
+      if (el.finSemanaCusto) el.finSemanaCusto.textContent = brl(semana.custo_total);
+      if (el.finSemanaLucro) el.finSemanaLucro.textContent = brl(semana.lucro_liquido);
+      if (el.finSemanaPecas) el.finSemanaPecas.textContent = `${num(semana.pecas_vendidas)} peça(s) vendida(s)`;
+    } catch (erro) {
+      if (erro.status !== 401) {
+        toast(erro.message || "Erro ao carregar resumo financeiro.", "erro");
+      }
+    }
   }
 
   // -------------------------------------------------------
   // ABA ESTOQUE & CATÁLOGO RÁPIDO DO PDV
   // -------------------------------------------------------
   async function carregarEstoque(termo) {
+    const filtroBusca = termo !== undefined ? termo : (el.inputBuscaEstoque ? el.inputBuscaEstoque.value.trim() : "");
     const seq = ++estado.seqBuscaEstoque;
     if (!estado.produtos.length) {
       el.listaEstoque.innerHTML = '<p class="vazio">Carregando estoque...</p>';
     }
     try {
-      const query = termo ? `?busca=${encodeURIComponent(termo)}` : "";
+      const query = filtroBusca
+        ? `?busca=${encodeURIComponent(filtroBusca)}&_t=${Date.now()}`
+        : `?_t=${Date.now()}`;
       const dados = await api(`/api/estoque${query}`);
       if (seq !== estado.seqBuscaEstoque) return;
       estado.produtos = extrairLista(dados, "produtos");
@@ -507,16 +662,40 @@
     `;
   }
 
+  function atualizarUiFiltrosEstoque() {
+    if (!el.filtrosEstoque) return;
+    const grupoAtivo = estado.filtroGrupoEstoque || "todos";
+    const statusAtivo = estado.filtroEstoque || "todos";
+    const nenhumAtivo = grupoAtivo === "todos" && statusAtivo === "todos";
+
+    const btnTodos = el.filtrosEstoque.querySelector('[data-acao-filtro="limpar"]');
+    if (btnTodos) {
+      btnTodos.classList.toggle("ativo", nenhumAtivo);
+    }
+    el.filtrosEstoque.querySelectorAll("button[data-grupo]").forEach((btn) => {
+      btn.classList.toggle("ativo", btn.dataset.grupo === grupoAtivo);
+    });
+    el.filtrosEstoque.querySelectorAll("button[data-filtro]").forEach((btn) => {
+      btn.classList.toggle("ativo", btn.dataset.filtro === statusAtivo);
+    });
+  }
+
   function renderizarEstoque() {
-    renderizarKpisEstoque();
+    atualizarUiFiltrosEstoque();
 
     const filtro = estado.filtroEstoque;
+    const filtroGrupo = estado.filtroGrupoEstoque;
     const produtosFiltrados = estado.produtos.filter((p) => {
       const vars = Array.isArray(p.variacoes) ? p.variacoes : [];
       const total = p.estoque_total !== undefined ? num(p.estoque_total) : vars.reduce((s, v) => s + num(v.estoque), 0);
-      if (filtro === "com-estoque") return total > 0;
-      if (filtro === "baixo") return total > 0 && total <= 3;
-      if (filtro === "zerado") return total <= 0;
+      if (filtro === "com-estoque" && total <= 0) return false;
+      if (filtro === "baixo" && (total <= 0 || total > 3)) return false;
+      if (filtro === "zerado" && total > 0) return false;
+
+      if (filtroGrupo && filtroGrupo !== "todos") {
+        const g = obterCorGrupo(p.modelo_nome, p.tipo_peca);
+        if (g.chave !== filtroGrupo) return false;
+      }
       return true;
     });
 
@@ -527,6 +706,10 @@
         : '<p class="vazio">Nenhum produto neste filtro.</p>';
       return;
     }
+
+    const svgTag = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`;
+    const svgEdit = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`;
+    const svgTrash = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
 
     const html = produtosFiltrados
       .map((p) => {
@@ -545,17 +728,21 @@
         if (estoqueTotal <= 0) classeChip = "zerado";
         else if (estoqueTotal <= 3) classeChip = "baixo";
 
-        const corteTecido = [p.corte, p.tecido].filter((x) => x && String(x).trim()).join(" | ");
+        const VAZIOS = ["", "—", "-", "N/A", "NA", "NONE", "NULL"];
+        const valido = (x) => x != null && !VAZIOS.includes(String(x).trim().toUpperCase());
+        const corteTecido = [p.corte, p.tecido].filter(valido).map((x) => String(x).trim()).join(" | ");
         const titulo = [p.modelo_nome, p.marca].filter((x) => x && String(x).trim()).join(" — ");
+        const grupo = obterCorGrupo(p.modelo_nome, p.tipo_peca);
 
         const pills = variacoes.length
           ? variacoes
               .map((v) => {
                 const qtd = num(v.estoque);
-                const bolinha = hexValido(v.cor_hex)
+                const corPadrao = String(v.cor || "").trim().toLowerCase() === "padrão";
+                const bolinha = hexValido(v.cor_hex) && !corPadrao
                   ? `<span class="bolinha-cor" style="background:${v.cor_hex.trim()}"></span>`
                   : "";
-                const cor = v.cor ? ` ${escapeHtml(v.cor)}` : "";
+                const cor = v.cor && !corPadrao ? ` ${escapeHtml(v.cor)}` : "";
                 const codigo = escapeHtml(v.codigo_barras || "");
                 if (qtd <= 0) {
                   return `
@@ -566,7 +753,7 @@
                     </span>`;
                 }
                 return `
-                  <button type="button" class="variacao-pill clicavel" data-acao="vender-variacao" data-codigo="${codigo}" title="Clique para enviar +1 ao Carrinho (${codigo})">
+                  <button type="button" class="variacao-pill clicavel" data-acao="vender-variacao" data-codigo="${codigo}" title="Toque para enviar +1 ao Carrinho (${codigo})">
                     ${bolinha}
                     <span>${escapeHtml(v.tamanho || "—")}${cor}</span>
                     <span class="variacao-qtd">×${qtd}</span>
@@ -576,10 +763,11 @@
           : '<span class="variacao-pill sem-estoque">Sem variações</span>';
 
         return `
-          <article class="card-produto">
+          <article class="card-produto ${grupo.classe}">
             <div>
               <div class="card-produto-topo">
                 <div>
+                  <div class="badge-grupo-produto ${grupo.badgeClasse}">${escapeHtml(grupo.nome)}</div>
                   <div class="card-produto-nome">${escapeHtml(titulo || "Produto sem nome")}</div>
                   ${corteTecido ? `<div class="card-produto-meta">${escapeHtml(corteTecido)}</div>` : ""}
                   <span class="chip-estoque ${classeChip}">${estoqueTotal} un. em estoque</span>
@@ -590,9 +778,9 @@
             </div>
 
             <div class="card-produto-rodape">
-              <button type="button" class="btn-icone-mini" data-acao="etiquetas-produto" data-id="${p.id}" title="Etiquetas QR Code">🏷️</button>
-              <button type="button" class="btn-icone-mini" data-acao="editar-produto" data-id="${p.id}" title="Editar produto">✏️</button>
-              <button type="button" class="btn-icone-mini perigo" data-acao="excluir-produto" data-id="${p.id}" title="Excluir produto">🗑️</button>
+              <button type="button" class="btn-icone-mini" data-acao="etiquetas-produto" data-id="${p.id}" title="Etiquetas QR Code">${svgTag}</button>
+              <button type="button" class="btn-icone-mini" data-acao="editar-produto" data-id="${p.id}" title="Editar produto">${svgEdit}</button>
+              <button type="button" class="btn-icone-mini perigo" data-acao="excluir-produto" data-id="${p.id}" title="Excluir produto">${svgTrash}</button>
             </div>
           </article>`;
       })
@@ -767,11 +955,87 @@
     }
   }
 
+  let audioContextGlobal = null;
+  let ultimoCodigoLido = null;
+  let ultimoTimestampLeitura = 0;
+
+  function tocarBipeLeitura() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioContextGlobal) {
+        audioContextGlobal = new AudioCtx();
+      }
+      if (audioContextGlobal.state === "suspended") {
+        audioContextGlobal.resume();
+      }
+      const osc = audioContextGlobal.createOscillator();
+      const gain = audioContextGlobal.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(1200, audioContextGlobal.currentTime);
+
+      gain.gain.setValueAtTime(0.25, audioContextGlobal.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioContextGlobal.currentTime + 0.12);
+
+      osc.connect(gain);
+      gain.connect(audioContextGlobal.destination);
+
+      osc.start(audioContextGlobal.currentTime);
+      osc.stop(audioContextGlobal.currentTime + 0.12);
+    } catch (_) {}
+  }
+
+  function dispararFeedbackLeitura() {
+    // A) Haptic / Vibração Física (Android + Truque Taptic Engine iOS 18+)
+    if (navigator.vibrate) {
+      try {
+        navigator.vibrate([120]);
+      } catch (_) {}
+    }
+
+    try {
+      let iosTrigger = document.getElementById("ios-haptic-trigger");
+      let iosLabel = document.getElementById("ios-haptic-label");
+      if (!iosTrigger) {
+        iosTrigger = document.createElement("input");
+        iosTrigger.type = "checkbox";
+        iosTrigger.setAttribute("switch", "");
+        iosTrigger.id = "ios-haptic-trigger";
+        iosTrigger.style.cssText = "position:fixed; opacity:0; pointer-events:none; left:-9999px;";
+        document.body.appendChild(iosTrigger);
+      }
+      if (!iosLabel) {
+        iosLabel = document.createElement("label");
+        iosLabel.htmlFor = "ios-haptic-trigger";
+        iosLabel.id = "ios-haptic-label";
+        iosLabel.style.cssText = "position:fixed; opacity:0; pointer-events:none; left:-9999px;";
+        document.body.appendChild(iosLabel);
+      }
+      document.getElementById("ios-haptic-label").click();
+    } catch (_) {}
+
+    // B) Bipe Sonoro de Caixa (Web Audio API nativa sem arquivos externos)
+    tocarBipeLeitura();
+
+    // C) Flash Visual Verde no Scanner
+    const targetReader = el.qrReader || document.getElementById("qr-reader");
+    if (targetReader) {
+      targetReader.classList.add("qr-flash-sucesso");
+      setTimeout(() => {
+        targetReader.classList.remove("qr-flash-sucesso");
+      }, 350);
+    }
+  }
+
   async function pararCamera() {
     const scanner = estado.scanner;
     estado.cameraAtiva = false;
     el.qrReader.classList.add("hidden");
+    el.qrReader.classList.remove("qr-flash-sucesso");
     atualizarBotaoCamera();
+    ultimoCodigoLido = null;
+    ultimoTimestampLeitura = 0;
     if (!scanner) return;
     try {
       if (scanner.isScanning) {
@@ -781,23 +1045,45 @@
   }
 
   function alternarCamera() {
+    try {
+      if (!audioContextGlobal) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) audioContextGlobal = new AudioCtx();
+      }
+      if (audioContextGlobal && audioContextGlobal.state === "suspended") {
+        audioContextGlobal.resume();
+      }
+    } catch (_) {}
+
     if (estado.cameraAtiva) pararCamera();
     else iniciarCamera();
   }
 
-  async function aoLerCodigo(textoDecodificado) {
-    const agora = Date.now();
-    if (agora < estado.scanBloqueadoAte || estado.buscandoCodigo) return;
-    estado.scanBloqueadoAte = agora + SCAN_COOLDOWN_MS;
+  async function aoLerCodigo(decodedText) {
+    if (!decodedText || estado.buscandoCodigo) return;
 
-    const codigo = normalizarCodigoLido(textoDecodificado);
+    const agora = Date.now();
+    const tempoDecorrido = agora - ultimoTimestampLeitura;
+
+    // REGRA A (Mesma Peça): Se decodedText === ultimoCodigoLido e tempoDecorrido < 4500 (4,5 segundos), IGNORE silenciosamente
+    if (decodedText === ultimoCodigoLido && tempoDecorrido < 4500) {
+      return;
+    }
+
+    // REGRA B (Peça Diferente): Se decodedText !== ultimoCodigoLido e tempoDecorrido < 2000 (2 segundos), IGNORE
+    if (decodedText !== ultimoCodigoLido && tempoDecorrido < 2000) {
+      return;
+    }
+
+    const codigo = normalizarCodigoLido(decodedText);
     if (!codigo) return;
 
-    vibrar(60);
-    el.qrReader.style.borderColor = "var(--sucesso)";
-    setTimeout(() => {
-      el.qrReader.style.borderColor = "";
-    }, 400);
+    // Atualiza controle da trava anti-duplicação
+    ultimoCodigoLido = decodedText;
+    ultimoTimestampLeitura = agora;
+
+    // Feedback sensorial triplo (Haptic, Bipe, Flash Verde)
+    dispararFeedbackLeitura();
 
     await adicionarPorCodigo(codigo);
   }
@@ -867,7 +1153,7 @@
       }
 
       renderizarCarrinho();
-      toast(`✓ ${item.modelo_nome} (${item.tamanho}) adicionada — ${brl(item.preco_venda)}`, "sucesso", 1800);
+      toast(`${item.modelo_nome} (${item.tamanho}) adicionada — ${brl(item.preco_venda)}`, "sucesso", 1800);
       return true;
     } catch (erro) {
       if (erro.status !== 401) {
@@ -1082,11 +1368,14 @@
       selecionarFormaPagamento("DINHEIRO");
       renderizarCarrinho();
       vibrar(120);
-      toast(`✓ Venda finalizada! Total: ${brl(cobrado)}`, "sucesso", 3200);
+      toast(`Venda finalizada! Total: ${brl(cobrado)}`, "sucesso", 3200);
 
-      carregarEstoque(el.inputBuscaEstoque.value.trim());
-      carregarVendasHoje();
-      if (forma === "FIADO") carregarClientes();
+      await Promise.all([
+        carregarEstoque(el.inputBuscaEstoque ? el.inputBuscaEstoque.value.trim() : ""),
+        carregarClientesFiado(),
+        carregarResumoFinanceiro(),
+        carregarVendasHoje(),
+      ]);
     } catch (erro) {
       if (erro.status !== 401) toast(erro.message || "Erro ao finalizar a venda.", "erro", 4000);
     } finally {
@@ -1109,7 +1398,7 @@
       <input type="number" class="var-custo" placeholder="Custo R$" step="0.01" min="0" value="${v.preco_custo !== undefined ? v.preco_custo : ""}" title="Preço de Custo">
       <input type="number" class="var-venda" placeholder="Venda R$" step="0.01" min="0" value="${v.preco_venda !== undefined ? v.preco_venda : ""}" title="Preço de Venda" required>
       <input type="number" class="var-est" placeholder="Estoque" step="1" min="0" value="${v.estoque !== undefined ? v.estoque : 1}" title="Quantidade em Estoque" required>
-      <button type="button" class="btn btn-secundario btn-sm texto-perigo btn-rem-var" title="Remover tamanho">✕</button>
+      <button type="button" class="btn btn-secundario btn-sm texto-perigo btn-rem-var" title="Remover tamanho">&times;</button>
     `;
     div.querySelector(".btn-rem-var").addEventListener("click", () => {
       if (el.listaVariacoesForm.children.length <= 1) {
@@ -1267,7 +1556,7 @@
       el.listaFiado.innerHTML = '<p class="vazio">Carregando clientes...</p>';
     }
     try {
-      const dados = await api("/api/fiado/clientes");
+      const dados = await api(`/api/fiado/clientes?_t=${Date.now()}`);
       estado.clientes = extrairLista(dados, "clientes").map(normalizarCliente);
       estado.clientesCarregados = true;
       renderizarFiado();
@@ -1277,6 +1566,8 @@
       el.listaFiado.innerHTML = `<p class="vazio">${escapeHtml(erro.message)}</p>`;
     }
   }
+
+  const carregarClientesFiado = carregarClientes;
 
   function renderizarFiado() {
     const totalAbertoGeral = arred(estado.clientes.reduce((s, c) => s + Math.max(0, c.saldo_devedor), 0));
@@ -1361,8 +1652,9 @@
               )}" target="_blank" rel="noopener" style="flex:0 0 auto;text-decoration:none">WhatsApp</a>`
             : "";
 
+        const svgTrashCli = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
         const botaoExcluir = !devedor
-          ? `<button type="button" class="btn btn-secundario texto-perigo" data-acao="excluir-cliente" data-id="${escapeHtml(c.id)}" style="flex:0 0 42px" title="Remover cliente">🗑️</button>`
+          ? `<button type="button" class="btn btn-secundario texto-perigo" data-acao="excluir-cliente" data-id="${escapeHtml(c.id)}" style="flex:0 0 42px" title="Remover cliente">${svgTrashCli}</button>`
           : "";
 
         return `
@@ -1528,7 +1820,12 @@
       fecharModalPagamento();
       vibrar(100);
       toast(dados && dados.mensagem ? dados.mensagem : `Pagamento de ${brl(valor)} registrado.`, "sucesso", 3000);
-      await carregarClientes();
+      await Promise.all([
+        carregarEstoque(el.inputBuscaEstoque ? el.inputBuscaEstoque.value.trim() : ""),
+        carregarClientesFiado(),
+        carregarResumoFinanceiro(),
+        carregarVendasHoje(),
+      ]);
     } catch (erro) {
       if (erro.status !== 401) toast(erro.message || "Erro ao registrar pagamento.", "erro", 4000);
     } finally {
@@ -1558,6 +1855,11 @@
     if (e.key === "F3") {
       e.preventDefault();
       trocarAba("aba-fiado");
+      return;
+    }
+    if (e.key === "F4" && estado.role === "admin") {
+      e.preventDefault();
+      trocarAba("tab-caixa");
       return;
     }
     if (e.key === "F9" && estado.abaAtual === "aba-vender") {
@@ -1612,22 +1914,50 @@
 
     // Abas (Mobile + PC Sidebar)
     Object.entries(el.tabs).forEach(([abaId, botao]) => {
-      botao.addEventListener("click", () => trocarAba(abaId));
+      if (botao) botao.addEventListener("click", () => trocarAba(abaId));
     });
     el.sidebarBtns.forEach((btn) => {
       btn.addEventListener("click", () => trocarAba(btn.dataset.aba));
     });
 
-    // Estoque: busca + filtros rápidos + cliques nos cards
+    // Caixa / Ganhos: botão atualizar
+    if (el.btnAtualizarCaixa) {
+      el.btnAtualizarCaixa.addEventListener("click", () => {
+        carregarResumoFinanceiro();
+        toast("Resumo financeiro atualizado!", "info", 1800);
+      });
+    }
+
+    // Estoque: busca + barra única combinável de filtros + cliques nos cards
     el.inputBuscaEstoque.addEventListener("input", buscarEstoqueDebounced);
     el.inputBuscaEstoque.addEventListener("search", buscarEstoqueDebounced);
     if (el.filtrosEstoque) {
       el.filtrosEstoque.addEventListener("click", (e) => {
-        const btn = e.target.closest("button[data-filtro]");
-        if (!btn) return;
-        estado.filtroEstoque = btn.dataset.filtro;
-        el.filtrosEstoque.querySelectorAll(".chip-filtro").forEach((b) => b.classList.toggle("ativo", b === btn));
-        renderizarEstoque();
+        const btnLimpar = e.target.closest('button[data-acao-filtro="limpar"]');
+        if (btnLimpar) {
+          estado.filtroGrupoEstoque = "todos";
+          estado.filtroEstoque = "todos";
+          atualizarUiFiltrosEstoque();
+          renderizarEstoque();
+          return;
+        }
+
+        const btnGrupo = e.target.closest("button[data-grupo]");
+        if (btnGrupo) {
+          const g = btnGrupo.dataset.grupo;
+          estado.filtroGrupoEstoque = estado.filtroGrupoEstoque === g ? "todos" : g;
+          atualizarUiFiltrosEstoque();
+          renderizarEstoque();
+          return;
+        }
+
+        const btnStatus = e.target.closest("button[data-filtro]");
+        if (btnStatus) {
+          const f = btnStatus.dataset.filtro;
+          estado.filtroEstoque = estado.filtroEstoque === f ? "todos" : f;
+          atualizarUiFiltrosEstoque();
+          renderizarEstoque();
+        }
       });
     }
     el.listaEstoque.addEventListener("click", async (e) => {
@@ -1760,12 +2090,51 @@
   }
 
   // -------------------------------------------------------
+  // SINCRONIZAÇÃO EM SEGUNDO PLANO (POLLING LEVE DE 8s)
+  // -------------------------------------------------------
+  let timerPollingSync = null;
+
+  function iniciarPollingSincronizacao() {
+    if (timerPollingSync) clearInterval(timerPollingSync);
+    timerPollingSync = setInterval(() => {
+      if (!estado.token || document.hidden) return;
+      if (estado.vendaEmAndamento || estado.pagamentoEmAndamento) return;
+
+      // Não interrompe se o usuário estiver digitando em um <input>, <select> ou <textarea>
+      const elAtivo = document.activeElement;
+      const tagAtiva = (elAtivo && elAtivo.tagName ? elAtivo.tagName : "").toUpperCase();
+      if (tagAtiva === "INPUT" || tagAtiva === "SELECT" || tagAtiva === "TEXTAREA") return;
+
+      // Não interrompe se algum modal estiver aberto
+      const modalAberto = [el.modalPagamento, el.modalProduto, el.modalCliente, el.modalEtiquetas].some(
+        (m) => m && !m.classList.contains("hidden")
+      );
+      if (modalAberto) return;
+
+      // Atualiza silenciosamente a aba visível no momento
+      if (estado.abaAtual === "aba-estoque") {
+        carregarEstoque(el.inputBuscaEstoque ? el.inputBuscaEstoque.value.trim() : "");
+      } else if (estado.abaAtual === "aba-vender") {
+        Promise.all([
+          carregarEstoque(el.inputBuscaEstoque ? el.inputBuscaEstoque.value.trim() : ""),
+          carregarVendasHoje(),
+        ]);
+      } else if (estado.abaAtual === "aba-fiado") {
+        carregarClientesFiado();
+      } else if (estado.abaAtual === "tab-caixa" && estado.role === "admin") {
+        carregarResumoFinanceiro();
+      }
+    }, 8000);
+  }
+
+  // -------------------------------------------------------
   // INICIALIZAÇÃO
   // -------------------------------------------------------
   function iniciar() {
     registrarEventos();
     selecionarFormaPagamento("DINHEIRO");
     renderizarCarrinho();
+    iniciarPollingSincronizacao();
 
     if (estado.token) {
       abrirApp();

@@ -9,7 +9,7 @@
    sem sair da origem instalada.
    ========================================================= */
 
-const CACHE_NAME = "kanemberg-shell-v6";
+const CACHE_NAME = "kanemberg-pwa-v7";
 const NETWORK_TIMEOUT_MS = 2500;
 
 // Shell obrigatório (cache.addAll é atômico: precisa responder 200)
@@ -19,9 +19,9 @@ const SHELL_ASSETS = [
   "/static/index.html",
   "/manifest.json",
   "/static/manifest.json",
-  "/static/style.css?v=5",
-  "/static/conexao_dinamica.js?v=1",
-  "/static/app.js?v=5",
+  "/static/style.css?v=7",
+  "/static/conexao_dinamica.js?v=7",
+  "/static/app.js?v=7",
   "/static/icon-180.png",
   "/static/icon-192.png",
   "/static/icon-512.png"
