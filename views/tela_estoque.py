@@ -48,6 +48,89 @@ _CARD_W       = 310   # largura fixa de cada card em px
 _IMG_SIZE     = 150   # mantido por compatibilidade
 _CIRCLE_SIZE  = 16    # diâmetro dos círculos de cor
 
+# Valores tratados como "sem informação" (Perfume, Relógio, etc.)
+_VALORES_VAZIOS = {"", "—", "-", "N/A", "NA", "NONE", "NULL"}
+
+
+def _valor_valido(valor) -> bool:
+    """True se o campo (tecido/corte) tiver conteúdo real para exibir."""
+    return valor is not None and str(valor).strip().upper() not in _VALORES_VAZIOS
+
+
+def _so_cor_padrao(cores_lista) -> bool:
+    """True se o produto tiver apenas a cor automática 'Padrão' (ex.: Perfume)."""
+    cores = list(cores_lista or [])
+    return len(cores) == 1 and str(cores[0][0]).strip().casefold() == "padrão"
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# PALETA LUMINESCENTE POR GRUPO DE PRODUTOS
+# ════════════════════════════════════════════════════════════════════════════
+_GRUPOS_CONFIG = {
+    "cima": {
+        "nome": "Parte de Cima",
+        "emoji": "👕",
+        "rotulo": "👕 Cima",
+        "cor": "#00d2ff",
+        "palavras": ("blusa", "camisa", "camiseta", "casaco", "vestido", "regata", "cropped", "sueter", "moletom"),
+    },
+    "baixo": {
+        "nome": "Parte de Baixo / Praia",
+        "emoji": "👖",
+        "rotulo": "👖 Baixo",
+        "cor": "#52b788",
+        "palavras": ("calça", "calca", "shorts", "short", "bermuda", "sunga", "saia"),
+    },
+    "calcados": {
+        "nome": "Calçados / Meias",
+        "emoji": "🩴",
+        "rotulo": "🩴 Calçados",
+        "cor": "#ff7b00",
+        "palavras": ("chinelo", "meia", "sandalia", "sandália", "tenis", "tênis", "sapato"),
+    },
+    "acessorios": {
+        "nome": "Acessórios",
+        "emoji": "⌚",
+        "rotulo": "⌚ Acessórios",
+        "cor": "#ff1744",
+        "palavras": ("boné", "bone", "óculos", "oculos", "relógio", "relogio", "cinto", "carteira", "bolsa"),
+    },
+    "perfumaria": {
+        "nome": "Perfumaria",
+        "emoji": "🧴",
+        "rotulo": "🧴 Perfumes",
+        "cor": "#ffd700",
+        "palavras": ("perfume", "colonia", "colônia", "fragrancia", "fragrância", "desodorante"),
+    },
+}
+
+
+def obter_cor_grupo(modelo_nome: str, tipo_peca: str = "") -> dict:
+    """
+    Analisa o início de modelo_nome (usando .lower().strip()) e tipo_peca como fallback.
+    Retorna nome da categoria, emoji, rótulo, chave e cor primária luminescente em hexadecimal.
+    Se não casar com nenhuma palavra-chave, define o Grupo 1 (#00d2ff) como padrão.
+    """
+    texto = f"{modelo_nome or ''} {tipo_peca or ''}".lower().strip()
+    for chave, dados in _GRUPOS_CONFIG.items():
+        for p in dados["palavras"]:
+            if texto.startswith(p) or f" {p}" in texto:
+                return {
+                    "chave": chave,
+                    "nome": dados["nome"],
+                    "emoji": dados["emoji"],
+                    "rotulo": dados["rotulo"],
+                    "cor": dados["cor"],
+                }
+    padrao = _GRUPOS_CONFIG["cima"]
+    return {
+        "chave": "cima",
+        "nome": padrao["nome"],
+        "emoji": padrao["emoji"],
+        "rotulo": padrao["rotulo"],
+        "cor": padrao["cor"],
+    }
+
 
 # ════════════════════════════════════════════════════════════════════════════
 # HELPER — Gera imagem circular colorida para CTkLabel
@@ -92,14 +175,14 @@ def _criar_circulo_imagem(hex_cor: str, tamanho: int = _CIRCLE_SIZE) -> ctk.CTkI
 
 class CardProdutoVertical(ctk.CTkFrame):
     """
-    Card compacto idêntico ao card de Estoque do PWA Mobile (sem área de foto):
-      • Linha 0: [Modelo — Marca] .......................... [R$ 100,00]
-      • Linha 1: [Corte | Tecido]
-      • Linha 2: [6 un. em estoque]  + círculos de cores
+    Card compacto com borda luminescente por grupo e design Dark Slate (#1e293b):
+      • Linha 0: Badge da Categoria Luminescente + Título + Preço Verde
+      • Linha 1: [Corte | Tecido] (apenas valores válidos)
+      • Linha 2: [6 un. em estoque] + círculos de cores (oculto se só 'Padrão')
       • Linha 3: Divisor sutil
       • Linha 4: Pílulas de tamanhos [ P ×0 ] [ M ×5 ] [ G ×1 ]
       • Linha 5: Divisor sutil
-      • Linha 6: Custo discreto + 5 botões minimalistas só com emojis:
+      • Linha 6: Custo discreto + 5 botões minimalistas com emojis:
                  [🛒 Vender] [📱 Ver QR] [🖨️ Imprimir] [✏️ Editar] [🗑️ Apagar]
     """
 
@@ -115,16 +198,22 @@ class CardProdutoVertical(ctk.CTkFrame):
         cache_circles: list,
         on_ver_qr=None,
     ):
+        self._dados = dados_produto
+        self._info_grupo = obter_cor_grupo(
+            dados_produto.get("modelo_nome"),
+            dados_produto.get("tipo_peca"),
+        )
+        self._cor_grupo = self._info_grupo["cor"]
+
         super().__init__(
             parent,
             fg_color=_BG_CARD,
-            corner_radius=14,
-            border_width=1,
-            border_color=_BORDER,
+            corner_radius=12,
+            border_width=2,
+            border_color=self._cor_grupo,
         )
         ctk.CTkFrame(self, width=_CARD_W, height=0, fg_color="transparent").grid(row=7, column=0)
 
-        self._dados    = dados_produto
         self._on_edit  = on_editar
         self._on_del   = on_apagar
         self._on_sell  = on_vender
@@ -149,12 +238,28 @@ class CardProdutoVertical(ctk.CTkFrame):
         tams_resumo = d.get("tamanhos_resumo", {})
         estoque_total = sum(tams_resumo.values()) if tams_resumo else 0
 
-        # ── 0. Linha 1: Título (esquerda) + Preço Verde (direita) ────────
+        # ── 0. Linha 1: Badge Luminescente + Título (esquerda) + Preço Verde (direita) ──
         frame_header = ctk.CTkFrame(self, fg_color="transparent")
         frame_header.grid(row=0, column=0, sticky="ew", padx=16, pady=(14, 0))
         frame_header.grid_columnconfigure(0, weight=1)
 
-        modelo_str = d.get("tipo_peca", "—")
+        # Badge arredondada de reforço visual da Categoria
+        badge_cat = ctk.CTkFrame(
+            frame_header,
+            fg_color="#0f172a",
+            border_width=1,
+            border_color=self._cor_grupo,
+            corner_radius=999,
+        )
+        badge_cat.grid(row=0, column=0, sticky="w", pady=(0, 4))
+        ctk.CTkLabel(
+            badge_cat,
+            text=f"{self._info_grupo['emoji']}  {self._info_grupo['nome']}",
+            font=ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
+            text_color=self._cor_grupo,
+        ).pack(padx=8, pady=2)
+
+        modelo_str = d.get("modelo_nome") or d.get("tipo_peca") or "—"
         marca_str  = d.get("marca", "")
         titulo_card = f"{modelo_str} — {marca_str}" if marca_str else modelo_str
 
@@ -166,7 +271,7 @@ class CardProdutoVertical(ctk.CTkFrame):
             anchor="w",
             justify="left",
             wraplength=185,
-        ).grid(row=0, column=0, sticky="w")
+        ).grid(row=1, column=0, sticky="w")
 
         preco_venda = d.get("preco_venda", 0.0)
         preco_fmt = f"R$ {preco_venda:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -176,22 +281,23 @@ class CardProdutoVertical(ctk.CTkFrame):
             font=ctk.CTkFont(family="Segoe UI", size=17, weight="bold"),
             text_color=_ACCENT_GREEN,
             anchor="e",
-        ).grid(row=0, column=1, sticky="ne", padx=(8, 0))
+        ).grid(row=0, rowspan=2, column=1, sticky="ne", padx=(8, 0))
 
-        # ── 1. Linha 2: Subtítulo (Corte | Tecido) ───────────────────────
-        partes_sub = [p.strip() for p in (d.get("corte", ""), d.get("tecido", "")) if p and p.strip()]
-        subtitulo = " | ".join(partes_sub) if partes_sub else "Padrão"
-        ctk.CTkLabel(
-            self,
-            text=subtitulo,
-            font=ctk.CTkFont(family="Segoe UI", size=13),
-            text_color=_FG_MUTED,
-            anchor="w",
-        ).grid(row=1, column=0, sticky="ew", padx=16, pady=(2, 6))
+        # ── 1. Linha 2: Subtítulo (Corte | Tecido) — só valores válidos ──
+        partes_sub = [str(p).strip() for p in (d.get("corte"), d.get("tecido")) if _valor_valido(p)]
+        if partes_sub:
+            ctk.CTkLabel(
+                self,
+                text=" | ".join(partes_sub),
+                font=ctk.CTkFont(family="Segoe UI", size=13),
+                text_color=_FG_MUTED,
+                anchor="w",
+            ).grid(row=1, column=0, sticky="ew", padx=16, pady=(2, 6))
 
         # ── 2. Linha 3: Badge "X un. em estoque" + Círculos de Cores ─────
         frame_badge_row = ctk.CTkFrame(self, fg_color="transparent")
-        frame_badge_row.grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 10))
+        frame_badge_row.grid(row=2, column=0, sticky="ew", padx=16,
+                             pady=(0 if partes_sub else 6, 10))
         frame_badge_row.grid_columnconfigure(1, weight=1)
 
         if estoque_total <= 0:
@@ -216,7 +322,8 @@ class CardProdutoVertical(ctk.CTkFrame):
             text_color=cor_badge_fg,
         ).pack(padx=10, pady=2)
 
-        cores_unicas = d.get("cores_lista", [])
+        # Oculta as bolinhas quando só existe a cor automática "Padrão" (ex.: Perfume)
+        cores_unicas = [] if _so_cor_padrao(d.get("cores_lista")) else d.get("cores_lista", [])
         if cores_unicas:
             frame_cores = ctk.CTkFrame(frame_badge_row, fg_color="transparent")
             frame_cores.grid(row=0, column=1, sticky="e")
@@ -387,12 +494,12 @@ class CardProdutoVertical(ctk.CTkFrame):
     # ── Hover visual na borda do card (sem popup ao clicar no card) ──────────
 
     def _bind_hover_e_click(self):
-        """Aplica apenas efeito de destaque na borda ao passar o mouse (sem menu popup ao clicar)."""
+        """Aplica apenas efeito de destaque na borda ao passar o mouse mantendo a cor luminescente."""
         def _hover_on(e):
-            self.configure(border_color=_BORDER_HOVER, border_width=2)
+            self.configure(border_color=self._cor_grupo, border_width=3)
 
         def _hover_off(e):
-            self.configure(border_color=_BORDER, border_width=1)
+            self.configure(border_color=self._cor_grupo, border_width=2)
 
         for widget in [self, *self._todos_filhos(self)]:
             widget.bind("<Enter>", _hover_on, add="+")
@@ -416,9 +523,9 @@ class CardProdutoVertical(ctk.CTkFrame):
         tk.Label(
             self._tooltip,
             text=texto,
-            bg="#1A1D2E",
-            fg="#E1B12C",
-            font=("Segoe UI", 9),
+            bg="#1e293b",
+            fg="#f8fafc",
+            font=("Segoe UI", 9, "bold"),
             padx=6,
             pady=3,
         ).pack()
@@ -455,7 +562,7 @@ class CardProdutoVertical(ctk.CTkFrame):
         popup = ctk.CTkToplevel(self)
         popup.wm_overrideredirect(True)   # sem borda/título do OS
         popup.attributes("-topmost", True)
-        popup.configure(fg_color="#16191F")
+        popup.configure(fg_color="#1e293b")
 
         # Registra o novo popup como o menu atual global e deste card
         CardProdutoVertical._menu_aberto_global = popup
@@ -469,10 +576,10 @@ class CardProdutoVertical(ctk.CTkFrame):
         popup.bind("<Destroy>", _on_popup_destroy)
 
         # Borda manual via frame externo
-        borda = ctk.CTkFrame(popup, fg_color="#2D7DD2", corner_radius=12)
+        borda = ctk.CTkFrame(popup, fg_color="#334155", corner_radius=12)
         borda.pack(padx=1, pady=1)
 
-        inner = ctk.CTkFrame(borda, fg_color="#16191F", corner_radius=11)
+        inner = ctk.CTkFrame(borda, fg_color="#1e293b", corner_radius=11)
         inner.pack(padx=1, pady=1)
 
         # Título do popup
@@ -480,11 +587,11 @@ class CardProdutoVertical(ctk.CTkFrame):
             inner,
             text=f"⚡  {d.get('tipo_peca', 'Produto')}",
             font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
-            text_color="#E1B12C",
+            text_color="#f8fafc",
             anchor="center",
         ).pack(fill="x", padx=12, pady=(10, 6))
 
-        ctk.CTkFrame(inner, height=1, fg_color="#22273A", corner_radius=0).pack(
+        ctk.CTkFrame(inner, height=1, fg_color="#334155", corner_radius=0).pack(
             fill="x", padx=8, pady=(0, 6)
         )
 
@@ -494,15 +601,15 @@ class CardProdutoVertical(ctk.CTkFrame):
         primeiro_vid = variacoes[0] if variacoes else None
 
         botoes_menu = [
-            ("✏️   Editar",                 "#1B4F8A", "#2D7DD2",
+            ("✏️   Editar",                 "#3b82f6", "#2563eb",
              lambda: (popup.destroy(), self._on_edit(produto_id))),
-            ("🗑   Apagar",                 "#7F1D1D", "#DC2626",
+            ("🗑   Apagar",                 "#ef4444", "#dc2626",
              lambda: (popup.destroy(), self._on_del(produto_id))),
-            ("🛒   Vender",                 "#14532D", "#059669",
+            ("🛒   Vender",                 "#22c55e", "#16a34a",
              lambda: (popup.destroy(), self._on_sell(primeiro_vid))),
-            ("📱   Ver QR Code na Tela",    "#4C1D95", "#7C3AED",
+            ("📱   Ver QR Code na Tela",    "#334155", "#475569",
              lambda: (popup.destroy(), self._on_ver_qr(d) if self._on_ver_qr else None)),
-            ("🖨️   Imprimir Etiquetas",     "#1E3A5F", "#2D7DD2",
+            ("🖨️   Imprimir Etiquetas",     "#334155", "#475569",
              lambda: (popup.destroy(), self._on_bar(d))),
         ]
 
@@ -511,12 +618,12 @@ class CardProdutoVertical(ctk.CTkFrame):
                 inner,
                 text=texto,
                 command=cmd,
-                font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
+                font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
                 fg_color=fg_cor,
                 hover_color=hover_cor,
                 text_color="#FFFFFF",
                 corner_radius=8,
-                height=36,
+                height=38,
                 width=200,
                 anchor="w",
             ).pack(fill="x", padx=10, pady=3)
@@ -571,6 +678,8 @@ class TelaEstoque(ctk.CTkFrame):
         self._popup_barcode  = None      # janela de impressão de etiquetas
         self._popup_ver_qr   = None      # janela modal de visualização de QR Code
         self._debounce_busca_id = None
+        self._filtro_grupo: str = "todos"
+        self._botoes_filtro_grupo: dict[str, ctk.CTkButton] = {}
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
@@ -650,6 +759,36 @@ class TelaEstoque(ctk.CTkFrame):
         # Filtragem em tempo real a cada tecla pressionada
         self.entry_busca.bind("<KeyRelease>", self._on_busca_keyrelease)
 
+        # ── BARRA DE FILTROS RÁPIDOS (BOTÕES-PÍLULA NAS 5 CORES LUMINESCENTES) ──
+        frame_filtros = ctk.CTkFrame(frame_busca, fg_color="transparent")
+        frame_filtros.grid(row=1, column=0, sticky="ew", pady=(8, 0))
+
+        opcoes_filtro = [
+            ("todos", "Todos", "#3b82f6"),
+            ("cima", "👕 Cima", "#00d2ff"),
+            ("baixo", "👖 Baixo", "#52b788"),
+            ("calcados", "🩴 Calçados", "#ff7b00"),
+            ("acessorios", "⌚ Acessórios", "#ff1744"),
+            ("perfumaria", "🧴 Perfumes", "#ffd700"),
+        ]
+
+        for idx_f, (chave, label, cor_neon) in enumerate(opcoes_filtro):
+            btn = ctk.CTkButton(
+                frame_filtros,
+                text=label,
+                font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+                height=32,
+                corner_radius=999,
+                command=lambda k=chave: self._filtrar_por_grupo(k),
+                fg_color=cor_neon if chave == "todos" else "#1e293b",
+                text_color="#FFFFFF" if chave == "todos" else cor_neon,
+                border_width=1,
+                border_color=cor_neon,
+                hover_color="#334155",
+            )
+            btn.grid(row=0, column=idx_f, padx=(0, 8), pady=2)
+            self._botoes_filtro_grupo[chave] = btn
+
         self.lbl_contagem = ctk.CTkLabel(
             frame_busca,
             text="",
@@ -657,7 +796,7 @@ class TelaEstoque(ctk.CTkFrame):
             text_color=_FG_MUTED,
             anchor="e",
         )
-        self.lbl_contagem.grid(row=1, column=0, sticky="e", pady=(4, 0))
+        self.lbl_contagem.grid(row=2, column=0, sticky="e", pady=(4, 0))
 
         # ── ÁREA DE CARDS (CTkScrollableFrame) ───────────────────────
         self.frame_vitrine = ctk.CTkScrollableFrame(
@@ -674,6 +813,25 @@ class TelaEstoque(ctk.CTkFrame):
 
         # Dispara renderização inicial com delay seguro
         self.after(250, self._renderizar_cards)
+
+    def _filtrar_por_grupo(self, chave: str):
+        """Alterna o filtro rápido de categoria luminescente e atualiza o visual dos botões."""
+        self._filtro_grupo = chave
+        for k, btn in self._botoes_filtro_grupo.items():
+            cor_k = "#3b82f6" if k == "todos" else _GRUPOS_CONFIG.get(k, {}).get("cor", "#3b82f6")
+            if k == chave:
+                btn.configure(
+                    fg_color=cor_k,
+                    text_color="#0f172a" if k in ("cima", "perfumaria") else "#FFFFFF",
+                    border_color=cor_k,
+                )
+            else:
+                btn.configure(
+                    fg_color="#1e293b",
+                    text_color=cor_k,
+                    border_color=cor_k,
+                )
+        self._renderizar_cards()
 
     def _on_vitrine_resize(self, event=None):
         """Só re-renderiza se a largura mudou o suficiente para alterar o número de colunas."""
@@ -698,6 +856,7 @@ class TelaEstoque(ctk.CTkFrame):
         """Encerramento seguro: limpa caches e destrói filhos sem race condition."""
         self._cache_imgs.clear()
         self._cache_circles.clear()
+        self._botoes_filtro_grupo.clear()
         if self._popup_barcode:
             try:
                 self._popup_barcode.destroy()
@@ -718,6 +877,15 @@ class TelaEstoque(ctk.CTkFrame):
         """Recarrega os cards da vitrine ao retornar para a aba de Estoque."""
         self._renderizar_cards()
 
+    def carregar_produtos(self):
+        self._renderizar_cards()
+
+    def atualizar_lista(self):
+        self._renderizar_cards()
+
+    def carregar_dados(self):
+        self._renderizar_cards()
+
     def _on_busca_keyrelease(self, event=None):
         if self._debounce_busca_id:
             self.after_cancel(self._debounce_busca_id)
@@ -728,8 +896,8 @@ class TelaEstoque(ctk.CTkFrame):
 
     def _renderizar_cards(self):
         """
-        Busca todos os produtos agrupados por PAI, aplica busca tokenizada AND
-        (modelo, marca, corte, tecido, cores e tamanhos) e reconstrói o grid de cards.
+        Busca todos os produtos agrupados por PAI, aplica filtro de categoria luminescente,
+        busca tokenizada AND (modelo, marca, corte, tecido, cores e tamanhos) e reconstrói o grid.
         """
         # Limpa a vitrine
         for w in self.frame_vitrine.winfo_children():
@@ -737,6 +905,14 @@ class TelaEstoque(ctk.CTkFrame):
 
         # Carrega dados agrupados
         dados_brutos = estoque_ctrl.listar_produtos_vitrine_grade()
+
+        # Filtro rápido por categoria luminescente
+        if self._filtro_grupo and self._filtro_grupo != "todos":
+            dados_brutos = [
+                p for p in dados_brutos
+                if obter_cor_grupo(p.get("modelo_nome"), p.get("tipo_peca"))["chave"] == self._filtro_grupo
+            ]
+
         termo = self._get_termo().lower()
 
         if termo:
@@ -746,6 +922,7 @@ class TelaEstoque(ctk.CTkFrame):
                 cores_str = " ".join(c[0] for c in p.get("cores_lista", []))
                 tams_str  = " ".join(k for k, v in p.get("tamanhos_resumo", {}).items() if v > 0)
                 ficha = " ".join([
+                    p.get("modelo_nome", ""),
                     p.get("tipo_peca", ""),
                     p.get("marca", ""),
                     p.get("corte", ""),
@@ -770,6 +947,8 @@ class TelaEstoque(ctk.CTkFrame):
                 font=ctk.CTkFont(family="Segoe UI", size=17),
                 text_color=_FG_MUTED,
             ).grid(row=0, column=0, padx=40, pady=60)
+            self.frame_vitrine.update_idletasks()
+            self.update_idletasks()
             return
 
         # ── Grid responsivo de Cards ──────────────────────────────────
@@ -798,6 +977,17 @@ class TelaEstoque(ctk.CTkFrame):
                 cache_circles=self._cache_circles,
             )
             card.grid(row=row, column=col, padx=10, pady=10, sticky="n")
+
+        # Força redesenho imediato do CTkScrollableFrame sem precisar redimensionar a janela
+        self.frame_vitrine.update_idletasks()
+        if hasattr(self.frame_vitrine, "_parent_canvas"):
+            try:
+                self.frame_vitrine._parent_canvas.configure(
+                    scrollregion=self.frame_vitrine._parent_canvas.bbox("all")
+                )
+            except Exception:
+                pass
+        self.update_idletasks()
 
     # ════════════════════════════════════════════════════════════════════
     # AÇÕES DOS CARDS
@@ -942,22 +1132,22 @@ class TelaEstoque(ctk.CTkFrame):
         win.geometry("460x570")
         win.resizable(False, False)
         win.attributes("-topmost", True)
-        win.configure(fg_color="#0F1117")
+        win.configure(fg_color="#0f172a")
         self._popup_ver_qr = win
 
         # Título
         ctk.CTkLabel(
             win,
             text=f"📱  {tipo_peca}  —  {marca}",
-            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
-            text_color="#E1B12C",
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
+            text_color="#f8fafc",
         ).pack(pady=(18, 4))
 
         ctk.CTkLabel(
             win,
             text="Aponte a câmera do celular para testar a leitura do QR Code!",
-            font=ctk.CTkFont(family="Segoe UI", size=13),
-            text_color="#8A8FA8",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color="#94a3b8",
         ).pack(pady=(0, 10))
 
         # Seletor de variação / tamanho
@@ -967,15 +1157,15 @@ class TelaEstoque(ctk.CTkFrame):
         ctk.CTkLabel(
             frame_tam,
             text="Selecione o Tamanho:",
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            text_color="#A0A8C0",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color="#94a3b8",
         ).pack(side="left", padx=(0, 10))
 
         tams = [f"Tam: {v.get('tamanho', '?')}  ·  {v.get('codigo_barras', '') or f'KNB{produto_id:05d}{i+1:04d}'}" for i, v in enumerate(variacoes)]
         var_opcao = ctk.StringVar(value=tams[0])
 
         # Card branco central para contraste do QR Code
-        card_qr = ctk.CTkFrame(win, fg_color="#FFFFFF", corner_radius=14, width=270, height=270)
+        card_qr = ctk.CTkFrame(win, fg_color="#FFFFFF", corner_radius=12, width=270, height=270)
         card_qr.pack(pady=8)
         card_qr.pack_propagate(False)
 
@@ -983,14 +1173,17 @@ class TelaEstoque(ctk.CTkFrame):
         lbl_qr.pack(expand=True, fill="both", padx=10, pady=10)
 
         # Informações complementares
-        frame_info = ctk.CTkFrame(win, fg_color="#16191F", corner_radius=10)
+        frame_info = ctk.CTkFrame(
+            win, fg_color="#1e293b", corner_radius=12,
+            border_width=1, border_color="#334155",
+        )
         frame_info.pack(fill="x", padx=30, pady=(8, 12))
 
         lbl_cod = ctk.CTkLabel(
             frame_info,
             text="",
             font=ctk.CTkFont(family="Consolas", size=15, weight="bold"),
-            text_color="#34D399",
+            text_color="#22c55e",
         )
         lbl_cod.pack(pady=(6, 2))
 
@@ -998,7 +1191,7 @@ class TelaEstoque(ctk.CTkFrame):
             frame_info,
             text="",
             font=ctk.CTkFont(family="Segoe UI", size=13),
-            text_color="#F0F2F8",
+            text_color="#f8fafc",
         )
         lbl_detalhes.pack(pady=(0, 6))
 
@@ -1031,7 +1224,15 @@ class TelaEstoque(ctk.CTkFrame):
             variable=var_opcao,
             command=_atualizar_qr,
             state="readonly",
-            font=ctk.CTkFont(size=13),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
+            fg_color="#0f172a",
+            border_color="#334155",
+            border_width=1,
+            button_color="#3b82f6",
+            button_hover_color="#2563eb",
+            text_color="#f8fafc",
+            corner_radius=8,
+            height=38,
             width=240,
         )
         combo_tam.pack(side="left")
@@ -1063,8 +1264,10 @@ class TelaEstoque(ctk.CTkFrame):
             text="🖨️  Imprimir Esta Etiqueta",
             command=_imprimir_este,
             font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
-            fg_color="#1B7A4C",
-            hover_color="#059669",
+            fg_color="#22c55e",
+            hover_color="#16a34a",
+            text_color="#ffffff",
+            corner_radius=8,
             height=38,
         ).pack(side="left", fill="x", expand=True, padx=(0, 8))
 
@@ -1072,9 +1275,11 @@ class TelaEstoque(ctk.CTkFrame):
             frame_rodape,
             text="✕  Fechar",
             command=win.destroy,
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
-            fg_color="#22273A",
-            hover_color="#2D7DD2",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            fg_color="#334155",
+            hover_color="#475569",
+            text_color="#f8fafc",
+            corner_radius=8,
             height=38,
             width=90,
         ).pack(side="right")
@@ -1105,35 +1310,37 @@ class TelaEstoque(ctk.CTkFrame):
         win.geometry("500x540")
         win.resizable(False, True)
         win.attributes("-topmost", True)
-        win.configure(fg_color="#0F1117")
+        win.configure(fg_color="#0f172a")
         self._popup_barcode = win
 
         # ── Cabeçalho ────────────────────────────────────────────────────
         ctk.CTkLabel(
             win,
             text="🏷️  Carrinho de Impressão de Etiquetas QR Code",
-            font=ctk.CTkFont(family="Segoe UI", size=19, weight="bold"),
-            text_color="#E1B12C",
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
+            text_color="#f8fafc",
         ).pack(pady=(18, 2))
 
         ctk.CTkLabel(
             win,
             text=f"{tipo_peca}  —  {marca}  |  Defina a quantidade de etiquetas com QR Code de cada tamanho",
-            font=ctk.CTkFont(family="Segoe UI", size=13),
-            text_color="#8A8FA8",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color="#94a3b8",
         ).pack(pady=(0, 8))
 
-        ctk.CTkFrame(win, height=1, fg_color="#22273A", corner_radius=0).pack(
+        ctk.CTkFrame(win, height=1, fg_color="#334155", corner_radius=0).pack(
             fill="x", padx=18, pady=(0, 2)
         )
 
         # ── Grade scrollável de tamanhos ──────────────────────────────────
         scroll_area = ctk.CTkScrollableFrame(
             win,
-            fg_color="#16191F",
-            corner_radius=10,
-            scrollbar_button_color="#2D7DD2",
-            scrollbar_button_hover_color="#E1B12C",
+            fg_color="#1e293b",
+            corner_radius=12,
+            border_width=1,
+            border_color="#334155",
+            scrollbar_button_color="#3b82f6",
+            scrollbar_button_hover_color="#2563eb",
             height=300,
         )
         scroll_area.pack(fill="x", padx=18, pady=10)
@@ -1150,8 +1357,8 @@ class TelaEstoque(ctk.CTkFrame):
             ctk.CTkLabel(
                 scroll_area,
                 text=txt,
-                font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-                text_color="#6B7280",
+                font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+                text_color="#94a3b8",
                 anchor=anc,
             ).grid(row=0, column=col, sticky="ew", padx=(12, 4), pady=(6, 10))
 
@@ -1174,7 +1381,7 @@ class TelaEstoque(ctk.CTkFrame):
 
             # Linha separadora entre itens (exceto o primeiro)
             if row_i > 1:
-                ctk.CTkFrame(scroll_area, height=1, fg_color="#22273A", corner_radius=0).grid(
+                ctk.CTkFrame(scroll_area, height=1, fg_color="#334155", corner_radius=0).grid(
                     row=row_i * 2 - 1, column=0, columnspan=3, sticky="ew", padx=8
                 )
 
@@ -1185,12 +1392,12 @@ class TelaEstoque(ctk.CTkFrame):
                 scroll_area,
                 text=f"  {tam}   ·   {cb}",
                 font=ctk.CTkFont(family="Segoe UI", size=14),
-                text_color="#F0F2F8",
+                text_color="#f8fafc",
                 anchor="w",
             ).grid(row=grid_row, column=0, sticky="ew", padx=(12, 4), pady=5)
 
             # Col 1 — estoque (verde se > 0, vermelho se zerado)
-            cor_est = "#34D399" if est > 0 else "#F87171"
+            cor_est = "#22c55e" if est > 0 else "#ef4444"
             ctk.CTkLabel(
                 scroll_area,
                 text=f"{est} un.",
@@ -1202,12 +1409,13 @@ class TelaEstoque(ctk.CTkFrame):
             # Col 2 — entry de quantidade
             entry = ctk.CTkEntry(
                 scroll_area,
-                width=70, height=30,
-                font=ctk.CTkFont(size=15),
-                fg_color="#0F1117",
-                border_color="#22273A",
-                text_color="#F0F2F8",
-                corner_radius=6,
+                width=70, height=38,
+                font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+                fg_color="#0f172a",
+                border_color="#334155",
+                border_width=1,
+                text_color="#f8fafc",
+                corner_radius=8,
                 justify="center",
             )
             entry.insert(0, "0")
@@ -1223,8 +1431,8 @@ class TelaEstoque(ctk.CTkFrame):
         # ── Status e botões ───────────────────────────────────────────────
         lbl_status = ctk.CTkLabel(
             win, text="",
-            font=ctk.CTkFont(family="Segoe UI", size=13),
-            text_color="#8A8FA8",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color="#94a3b8",
         )
         lbl_status.pack(pady=(2, 4))
 
@@ -1247,7 +1455,7 @@ class TelaEstoque(ctk.CTkFrame):
 
                 lbl_status.configure(
                     text=f"⏳  Imprimindo Tam:{item['tamanho']}  ×{qtd}...",
-                    text_color="#E1B12C",
+                    text_color="#3b82f6",
                 )
                 win.update_idletasks()
 
@@ -1277,22 +1485,22 @@ class TelaEstoque(ctk.CTkFrame):
             if enviadas > 0 and not erros:
                 lbl_status.configure(
                     text=f"✅  {enviadas} etiqueta(s) enviadas com sucesso!",
-                    text_color="#34D399",
+                    text_color="#22c55e",
                 )
             elif enviadas > 0:
                 lbl_status.configure(
                     text=f"⚠️  {enviadas} enviadas · {len(erros)} erro(s): {erros[0]}",
-                    text_color="#F59E0B",
+                    text_color="#f59e0b",
                 )
             elif not erros:
                 lbl_status.configure(
                     text="ℹ️  Defina qtd > 0 em pelo menos um tamanho.",
-                    text_color="#8A8FA8",
+                    text_color="#94a3b8",
                 )
             else:
                 lbl_status.configure(
                     text=f"❌  {erros[0]}",
-                    text_color="#DC2626",
+                    text_color="#ef4444",
                 )
 
         ctk.CTkButton(
@@ -1300,9 +1508,9 @@ class TelaEstoque(ctk.CTkFrame):
             text="🖨️  Imprimir Etiquetas QR Code",
             command=_imprimir_tudo,
             font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
-            fg_color="#4C1D95",
-            hover_color="#A855F7",
-            text_color="#FFFFFF",
+            fg_color="#22c55e",
+            hover_color="#16a34a",
+            text_color="#ffffff",
             corner_radius=8,
             height=40,
             width=240,
@@ -1312,10 +1520,10 @@ class TelaEstoque(ctk.CTkFrame):
             frame_btns,
             text="✕  Fechar",
             command=win.destroy,
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
-            fg_color="#22273A",
-            hover_color="#2D7DD2",
-            text_color="#F0F2F8",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            fg_color="#334155",
+            hover_color="#475569",
+            text_color="#f8fafc",
             corner_radius=8,
             height=40,
             width=100,

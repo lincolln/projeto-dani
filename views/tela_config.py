@@ -1,7 +1,7 @@
 """
-tela_config.py — Painel de Configurações (Redesign Premium CTk)
+tela_config.py — Painel de Configurações (Design System Slate Web PWA)
 Cada aba gerencia um tipo de atributo (Marcas, Cores, etc.)
-Convertido de tk puro para CustomTkinter com tema escuro unificado.
+Convertido para CustomTkinter com paleta Slate Web (#0f172a / #1e293b / #334155).
 """
 
 import tkinter as tk
@@ -15,18 +15,23 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from controllers import config_ctrl
 
-# ── Paleta (espelha o resto do app) ──────────────────────────────────────────
-_BG_WINDOW  = ("#F0F2F8", "#0F1117")
-_BG_CARD    = ("#FFFFFF",  "#16191F")
-_BG_HOVER   = ("#E8ECF4",  "#22273A")
-_FG_PRIMARY = ("#1A1D2E",  "#F0F2F8")
-_FG_MUTED   = ("#6B7280",  "#8A8FA8")
-_FG_LABEL   = ("#4B5563",  "#A0A8C0")
-_ACCENT_G   = ("#B8861F",  "#E1B12C")   # dourado
-_ACCENT_B   = ("#1B4F8A",  "#2D7DD2")   # azul
-_BORDER     = ("#DDE3EE",  "#22273A")
-_BTN_ADD    = ("#1B7A4C",  "#059669")   # verde
-_BTN_DEL    = ("#B91C1C",  "#DC2626")   # vermelho
+# ── Paleta Slate Web (PWA Dark Mode) ─────────────────────────────────────────
+_BG_WINDOW  = ("#F0F2F8", "#0f172a")
+_BG_CARD    = ("#FFFFFF", "#1e293b")
+_BG_SUB     = ("#F4F6FB", "#0f172a")
+_BG_HOVER   = ("#E8ECF4", "#334155")
+_FG_PRIMARY = ("#1A1D2E", "#f8fafc")
+_FG_MUTED   = ("#6B7280", "#94a3b8")
+_FG_LABEL   = ("#4B5563", "#94a3b8")
+_ACCENT_G   = ("#16a34a", "#22c55e")   # verde destaque
+_ACCENT_B   = ("#2563eb", "#3b82f6")   # azul primário web
+_BORDER     = ("#DDE3EE", "#334155")
+_BTN_ADD    = ("#22c55e", "#22c55e")   # sucesso / salvar
+_BTN_ADD_HV = ("#16a34a", "#16a34a")
+_BTN_SEC    = ("#334155", "#334155")   # secundário / inativo
+_BTN_SEC_HV = ("#475569", "#475569")
+_BTN_DEL    = ("#ef4444", "#ef4444")   # perigo / excluir
+_BTN_DEL_HV = ("#dc2626", "#dc2626")
 
 ICONES = {
     "marca":     "🏷️",
@@ -43,7 +48,7 @@ def _hex(t):
 
 
 class TelaConfiguracoes(ctk.CTkFrame):
-    """Painel de configurações de atributos com abas CTk premium."""
+    """Painel de configurações de atributos com Design System Slate Web."""
 
     CATEGORIAS = [
         ("Marcas",        "marca"),
@@ -92,42 +97,46 @@ class TelaConfiguracoes(ctk.CTkFrame):
 
     def _construir_cabecalho(self):
         frame = ctk.CTkFrame(self, fg_color="transparent", corner_radius=0)
-        frame.grid(row=0, column=0, sticky="ew", padx=28, pady=(20, 0))
+        frame.grid(row=0, column=0, sticky="ew", padx=15, pady=(12, 0))
         frame.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
             frame,
             text="⚙️  Painel de Atributos",
-            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
             text_color=_FG_PRIMARY, anchor="w",
         ).grid(row=0, column=0, sticky="w")
 
         ctk.CTkLabel(
             frame,
             text="Gerencie as opções disponíveis nos formulários de cadastro",
-            font=ctk.CTkFont(family="Segoe UI", size=10),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             text_color=_FG_MUTED, anchor="w",
-        ).grid(row=1, column=0, sticky="w", pady=(2, 0))
+        ).grid(row=1, column=0, sticky="w", pady=(2, 8))
 
         # Divider
         ctk.CTkFrame(
-            self, height=1, fg_color=_BORDER, corner_radius=0
-        ).grid(row=0, column=0, sticky="ews", padx=28, pady=(62, 0))
+            frame, height=1, fg_color=_BORDER, corner_radius=0
+        ).grid(row=2, column=0, sticky="ew")
 
     # ── Corpo: barra de abas + conteúdo ────────────────────────────────
 
     def _construir_corpo(self):
         frame_corpo = ctk.CTkFrame(self, fg_color="transparent", corner_radius=0)
-        frame_corpo.grid(row=1, column=0, sticky="nsew", padx=28, pady=16)
+        frame_corpo.grid(row=1, column=0, sticky="nsew", padx=15, pady=12)
         frame_corpo.grid_columnconfigure(1, weight=1)
         frame_corpo.grid_rowconfigure(0, weight=1)
 
         self._construir_barra_abas(frame_corpo)
 
         self._area_conteudo = ctk.CTkScrollableFrame(
-            frame_corpo, fg_color=_BG_CARD,
+            frame_corpo,
+            fg_color=_BG_CARD,
             corner_radius=12,
-            border_width=1, border_color=_BORDER,
+            border_width=1,
+            border_color=_BORDER,
+            scrollbar_button_color=_ACCENT_B,
+            scrollbar_button_hover_color=_BG_HOVER,
         )
         self._area_conteudo.grid(row=0, column=1, sticky="nsew")
         self._area_conteudo.grid_columnconfigure(0, weight=1)
@@ -148,19 +157,23 @@ class TelaConfiguracoes(ctk.CTkFrame):
 
     def _construir_barra_abas(self, parent):
         outer = ctk.CTkScrollableFrame(
-            parent, fg_color=_BG_CARD,
+            parent,
+            fg_color=_BG_CARD,
             corner_radius=12,
-            border_width=1, border_color=_BORDER,
-            width=180,
+            border_width=1,
+            border_color=_BORDER,
+            width=210,
+            scrollbar_button_color=_ACCENT_B,
+            scrollbar_button_hover_color=_BG_HOVER,
         )
         outer.grid(row=0, column=0, sticky="ns", padx=(0, 12))
 
         ctk.CTkLabel(
             outer,
             text="CATEGORIAS",
-            font=ctk.CTkFont(family="Segoe UI", size=8, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             text_color=_FG_MUTED, anchor="w",
-        ).pack(anchor="w", padx=16, pady=(16, 8))
+        ).pack(anchor="w", padx=15, pady=(12, 8))
 
         ctk.CTkFrame(outer, height=1, fg_color=_BORDER, corner_radius=0).pack(
             fill="x", padx=12, pady=(0, 8)
@@ -171,10 +184,16 @@ class TelaConfiguracoes(ctk.CTkFrame):
             self._criar_btn_aba(outer, titulo, categoria, icon)
 
     def _criar_btn_aba(self, parent, titulo, categoria, icon):
-        container = ctk.CTkFrame(parent, fg_color="transparent", corner_radius=8)
-        container.pack(fill="x", padx=8, pady=2)
+        container = ctk.CTkFrame(
+            parent,
+            fg_color=_BG_SUB,
+            corner_radius=8,
+            border_width=1,
+            border_color=_BG_CARD,
+        )
+        container.pack(fill="x", padx=8, pady=4)
 
-        barra = ctk.CTkFrame(container, fg_color="transparent", width=3, corner_radius=2)
+        barra = ctk.CTkFrame(container, fg_color="transparent", width=4, corner_radius=2)
         barra.pack(side="left", fill="y")
 
         btn_frame = ctk.CTkFrame(container, fg_color="transparent", corner_radius=8)
@@ -186,35 +205,33 @@ class TelaConfiguracoes(ctk.CTkFrame):
             text_color=_FG_MUTED,
             fg_color="transparent",
         )
-        icon_lbl.pack(anchor="w", padx=(10, 0), pady=(8, 0))
+        icon_lbl.pack(side="left", padx=(10, 8), pady=10)
 
         txt_lbl = ctk.CTkLabel(
             btn_frame, text=titulo,
-            font=ctk.CTkFont(family="Segoe UI", size=9, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             text_color=_FG_MUTED,
             fg_color="transparent",
             anchor="w",
         )
-        txt_lbl.pack(anchor="w", padx=10, pady=(0, 8))
+        txt_lbl.pack(side="left", fill="x", expand=True, padx=(0, 10), pady=10)
 
         def _click(e, c=categoria):
             self._exibir_aba(c)
 
         def _enter(e, cf=container, bf=btn_frame, il=icon_lbl, tl=txt_lbl):
             if self._aba_ativa != categoria:
-                for w in (cf, bf, il, tl):
-                    try:
-                        w.configure(fg_color=_BG_HOVER)
-                    except Exception:
-                        pass
+                try:
+                    cf.configure(fg_color=_BG_HOVER, border_color="#475569")
+                except Exception:
+                    pass
 
         def _leave(e, cf=container, bf=btn_frame, il=icon_lbl, tl=txt_lbl):
             if self._aba_ativa != categoria:
-                for w in (cf, bf, il, tl):
-                    try:
-                        w.configure(fg_color="transparent")
-                    except Exception:
-                        pass
+                try:
+                    cf.configure(fg_color=_BG_SUB, border_color=_BG_CARD)
+                except Exception:
+                    pass
 
         for w in (container, btn_frame, icon_lbl, txt_lbl):
             w.bind("<Button-1>", _click)
@@ -246,18 +263,16 @@ class TelaConfiguracoes(ctk.CTkFrame):
 
         for cat, widgets in self._btn_abas.items():
             ativo = (cat == categoria)
-            for w in (widgets["container"], widgets["btn_frame"],
-                      widgets["icon"], widgets["text"]):
-                try:
-                    w.configure(fg_color=("#E8ECF4", "#1E3A5F") if ativo else "transparent")
-                except Exception:
-                    pass
             try:
+                widgets["container"].configure(
+                    fg_color=_ACCENT_B if ativo else _BG_SUB,
+                    border_color="#2563eb" if ativo else _BG_CARD,
+                )
                 widgets["icon"].configure(
-                    text_color=_ACCENT_G if ativo else _FG_MUTED
+                    text_color=("#FFFFFF", "#f8fafc") if ativo else _FG_MUTED
                 )
                 widgets["text"].configure(
-                    text_color=_ACCENT_G if ativo else _FG_MUTED
+                    text_color=("#FFFFFF", "#f8fafc") if ativo else _FG_MUTED
                 )
                 widgets["barra"].configure(
                     fg_color=_ACCENT_G if ativo else "transparent"
@@ -282,35 +297,39 @@ class TelaConfiguracoes(ctk.CTkFrame):
 
         # ── Cabeçalho da aba
         hdr = ctk.CTkFrame(frame, fg_color="transparent")
-        hdr.grid(row=0, column=0, sticky="ew", padx=20, pady=(16, 0))
+        hdr.grid(row=0, column=0, sticky="ew", padx=15, pady=(12, 8))
         hdr.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
             hdr,
             text=f"{icon}  {titulo_aba}",
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
             text_color=_FG_PRIMARY, anchor="w",
         ).grid(row=0, column=0, sticky="w")
 
         # ── Linha de adição (canto direito do header)
-        linha_add = ctk.CTkFrame(frame, fg_color="transparent")
-        linha_add.grid(row=0, column=0, sticky="se", padx=20, pady=(16, 0))
+        linha_add = ctk.CTkFrame(hdr, fg_color="transparent")
+        linha_add.grid(row=0, column=1, sticky="e")
 
         entry_novo = ctk.CTkEntry(
             linha_add,
             placeholder_text=f"Novo(a) {titulo_aba.lower().rstrip('s')}...",
-            width=220, height=34,
-            font=ctk.CTkFont(family="Segoe UI", size=10),
-            fg_color=_BG_WINDOW, border_color=_BORDER,
-            text_color=_FG_PRIMARY, corner_radius=8,
+            width=240,
+            height=38,
+            font=ctk.CTkFont(family="Segoe UI", size=13),
+            fg_color=_BG_SUB,
+            border_color=_BORDER,
+            border_width=1,
+            text_color=_FG_PRIMARY,
+            corner_radius=8,
         )
         entry_novo.pack(side="left", padx=(0, 8))
 
         lbl_status = ctk.CTkLabel(
             linha_add, text="",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
-            text_color=("#059669", "#34D399"),
-            width=200,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=_ACCENT_G,
+            width=180,
         )
 
         def _salvar(e=None):
@@ -323,12 +342,12 @@ class TelaConfiguracoes(ctk.CTkFrame):
                 self._dados_alterados[categoria] = False
                 lbl_status.configure(
                     text=f"✅  {msg}",
-                    text_color=("#059669", "#34D399")
+                    text_color=_ACCENT_G,
                 )
             else:
                 lbl_status.configure(
                     text=f"❌  {msg}",
-                    text_color=("#DC2626", "#F87171")
+                    text_color=_BTN_DEL,
                 )
             self.after(3000, lambda: lbl_status.configure(text=""))
 
@@ -336,11 +355,12 @@ class TelaConfiguracoes(ctk.CTkFrame):
             linha_add,
             text="Adicionar  ➕",
             command=_salvar,
-            font=ctk.CTkFont(family="Segoe UI", size=9, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
             fg_color=_BTN_ADD,
-            hover_color=("#155F3C", "#047857"),
-            text_color=("#FFFFFF", "#FFFFFF"),
-            corner_radius=8, height=34,
+            hover_color=_BTN_ADD_HV,
+            text_color="#ffffff",
+            corner_radius=8,
+            height=38,
         ).pack(side="left")
 
         lbl_status.pack(side="left", padx=10)
@@ -349,30 +369,36 @@ class TelaConfiguracoes(ctk.CTkFrame):
         # ── Divider
         ctk.CTkFrame(
             frame, height=1, fg_color=_BORDER, corner_radius=0
-        ).grid(row=0, column=0, sticky="ews", padx=16, pady=(68, 0))
+        ).grid(row=0, column=0, sticky="ews", padx=15, pady=(62, 0))
 
-        # ── Tabela (Treeview estilizado tema escuro)
-        frame_tv = ctk.CTkFrame(frame, fg_color="transparent", corner_radius=0)
-        frame_tv.grid(row=1, column=0, sticky="nsew", padx=16, pady=(8, 16))
+        # ── Tabela (Treeview estilizado tema escuro Slate Web)
+        frame_tv = ctk.CTkFrame(
+            frame,
+            fg_color=_BG_SUB,
+            corner_radius=8,
+            border_width=1,
+            border_color=_BG_CARD,
+        )
+        frame_tv.grid(row=1, column=0, sticky="nsew", padx=15, pady=12)
         frame_tv.grid_columnconfigure(0, weight=1)
         frame_tv.grid_rowconfigure(0, weight=1)
 
-        bg_tv = _hex(_BG_CARD)
+        bg_tv = _hex(_BG_SUB)
         s = ttk.Style()
         s.configure(
             f"Cfg_{categoria}.Treeview",
             background=bg_tv,
             fieldbackground=bg_tv,
             foreground=_hex(_FG_PRIMARY),
-            rowheight=32,
-            font=("Segoe UI", 10),
+            rowheight=36,
+            font=("Segoe UI", 11),
             borderwidth=0,
         )
         s.configure(
             f"Cfg_{categoria}.Treeview.Heading",
-            font=("Segoe UI", 10, "bold"),
+            font=("Segoe UI", 11, "bold"),
             background=_hex(_BG_HOVER),
-            foreground=_hex(_ACCENT_G),
+            foreground=_hex(_FG_PRIMARY),
             relief="flat",
         )
         s.map(
@@ -389,7 +415,7 @@ class TelaConfiguracoes(ctk.CTkFrame):
         )
 
         wrapper = tk.Frame(frame_tv, bg=bg_tv)
-        wrapper.grid(row=0, column=0, sticky="nsew")
+        wrapper.grid(row=0, column=0, sticky="nsew", padx=4, pady=4)
 
         colunas = ("ID", "Nome Cadastrado", "Acao")
         tabela = ttk.Treeview(
@@ -401,14 +427,17 @@ class TelaConfiguracoes(ctk.CTkFrame):
         tabela.heading("ID",              text="ID")
         tabela.heading("Nome Cadastrado", text="Nome Cadastrado")
         tabela.heading("Acao",            text="Duplo clique para excluir")
-        tabela.column("ID",              width=55,  anchor="center")
+        tabela.column("ID",              width=60,  anchor="center")
         tabela.column("Nome Cadastrado", width=400, anchor="w")
         tabela.column("Acao",            width=220, anchor="center")
 
-        tabela.tag_configure("par",   background=_hex(_BG_CARD))
-        tabela.tag_configure("impar", background=_hex(_BG_HOVER))
+        tabela.tag_configure("par",   background=_hex(_BG_SUB))
+        tabela.tag_configure("impar", background=_hex(_BG_CARD))
 
-        scroll = ttk.Scrollbar(wrapper, orient="vertical", command=tabela.yview)
+        scroll = ttk.Scrollbar(
+            wrapper, orient="vertical", command=tabela.yview,
+            style="Cfg.Vertical.TScrollbar",
+        )
         tabela.configure(yscrollcommand=scroll.set)
         tabela.pack(side="left", fill="both", expand=True)
         scroll.pack(side="right", fill="y")
@@ -431,7 +460,7 @@ class TelaConfiguracoes(ctk.CTkFrame):
             tag = "par" if i % 2 == 0 else "impar"
             tabela.insert(
                 "", tk.END,
-                values=(item["id"], item["nome"], "🖱️  Duplo clique para excluir"),
+                values=(item["id"], item["nome"], "🗑️  Duplo clique para excluir"),
                 tags=(tag,),
             )
 
@@ -456,5 +485,3 @@ class TelaConfiguracoes(ctk.CTkFrame):
                 self._dados_alterados[categoria] = False
             else:
                 messagebox.showerror("Erro", msg)
-
-

@@ -23,6 +23,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from controllers import estoque_ctrl
 
+# Valores tratados como "sem informação" (Perfume, Relógio, etc.)
+_VALORES_VAZIOS = {"", "—", "-", "N/A", "NA", "NONE", "NULL"}
+
+
+def _valor_valido(valor) -> bool:
+    """True se o campo (tecido/corte) tiver conteúdo real para exibir."""
+    return valor is not None and str(valor).strip().upper() not in _VALORES_VAZIOS
+
 # ── Paletas dinâmicas (claro, escuro — Tema Slate Dark Mobile) ──────────────
 _BG_WINDOW   = ("#F0F2F8", "#0f172a")
 _BG_CARD     = ("#FFFFFF", "#1e293b")
@@ -206,14 +214,14 @@ class TelaVenda(ctk.CTkFrame):
 
         # ── Painel de Checkout ───────────────────────────────────────
         frame_checkout = ctk.CTkFrame(
-            frame, fg_color=_BG_CHECKOUT, corner_radius=10,
+            frame, fg_color=_BG_CHECKOUT, corner_radius=8,
             border_width=1, border_color=_BORDER,
         )
-        frame_checkout.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 12))
+        frame_checkout.grid(row=3, column=0, sticky="ew", padx=15, pady=(0, 12))
 
         # Linha 1: subtotal + desconto
         linha1 = ctk.CTkFrame(frame_checkout, fg_color="transparent")
-        linha1.pack(fill="x", padx=12, pady=(10, 6))
+        linha1.pack(fill="x", padx=15, pady=(12, 6))
 
         self.lbl_subtotal = ctk.CTkLabel(
             linha1, text="Subtotal: R$ 0,00",
@@ -224,14 +232,15 @@ class TelaVenda(ctk.CTkFrame):
 
         ctk.CTkLabel(
             linha1, text="Desconto R$:",
-            font=ctk.CTkFont(size=13), text_color=_FG_MUTED,
-        ).pack(side="left", padx=(20, 5))
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=_FG_MUTED,
+        ).pack(side="left", padx=(20, 6))
 
         self.entry_desconto = ctk.CTkEntry(
-            linha1, width=90, height=30,
-            font=ctk.CTkFont(size=13),
-            fg_color=_BG_CARD, border_color=_BORDER,
-            text_color=_FG_PRIMARY, corner_radius=6, justify="center",
+            linha1, width=95, height=38,
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            fg_color=_BG_WINDOW, border_color=_BORDER, border_width=1,
+            text_color=_FG_PRIMARY, corner_radius=8, justify="center",
         )
         self.entry_desconto.pack(side="left")
         self.entry_desconto.insert(0, "0.00")
@@ -239,26 +248,26 @@ class TelaVenda(ctk.CTkFrame):
 
         self.lbl_percentual = ctk.CTkLabel(
             linha1, text="(0,0%)",
-            font=ctk.CTkFont(size=13),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             text_color=_FG_MUTED,
         )
         self.lbl_percentual.pack(side="left", padx=6)
 
         # Linha 2: formas de pagamento — botões pill selecionáveis
         linha_pgto = ctk.CTkFrame(frame_checkout, fg_color="transparent")
-        linha_pgto.pack(fill="x", padx=12, pady=(4, 8))
+        linha_pgto.pack(fill="x", padx=15, pady=(4, 8))
 
         ctk.CTkLabel(
             linha_pgto, text="Pagamento:",
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            text_color=_FG_LABEL,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=_FG_MUTED,
         ).pack(side="left", padx=(0, 10))
 
         _FORMAS_PGTO = [
-            ("💵 Dinheiro", "DINHEIRO", ("#059669", "#34D399")),
-            ("📱 PIX",     "PIX",      _ACCENT_BLUE),
-            ("💳 Cartão",  "CARTAO",   ("#7C3AED", "#A78BFA")),
-            ("📒 Fiado",   "FIADO",    ("#DC2626", "#F87171")),
+            ("💵 Dinheiro", "DINHEIRO", ("#16a34a", "#22c55e")),
+            ("📱 PIX",     "PIX",      ("#2563eb", "#3b82f6")),
+            ("💳 Cartão",  "CARTAO",   ("#2563eb", "#3b82f6")),
+            ("📒 Fiado",   "FIADO",    ("#dc2626", "#ef4444")),
         ]
         self._btns_pgto = {}
 
@@ -268,8 +277,9 @@ class TelaVenda(ctk.CTkFrame):
                 ativo = (v == valor)
                 cor_pill = btn_info["cor"]
                 btn_info["btn"].configure(
-                    fg_color=cor_pill if ativo else _BG_HOVER,
-                    text_color=("#FFFFFF", "#FFFFFF") if ativo else _FG_MUTED,
+                    fg_color=cor_pill if ativo else ("#E2E8F0", "#334155"),
+                    hover_color=cor_pill if ativo else ("#CBD5E1", "#475569"),
+                    text_color=("#FFFFFF", "#f8fafc"),
                     border_color=cor_pill if ativo else _BORDER,
                     border_width=2 if ativo else 1,
                 )
@@ -280,13 +290,13 @@ class TelaVenda(ctk.CTkFrame):
                 text=label,
                 command=lambda v=valor: _selecionar_pgto(v),
                 font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-                fg_color=_BG_HOVER,
-                hover_color=cor,
-                text_color=_FG_MUTED,
+                fg_color=("#E2E8F0", "#334155"),
+                hover_color=("#CBD5E1", "#475569"),
+                text_color=_FG_PRIMARY,
                 border_color=_BORDER,
                 border_width=1,
-                corner_radius=20,
-                height=30, width=100,
+                corner_radius=8,
+                height=34, width=98,
             )
             btn_pill.pack(side="left", padx=4)
             self._btns_pgto[valor] = {"btn": btn_pill, "cor": cor}
@@ -296,14 +306,17 @@ class TelaVenda(ctk.CTkFrame):
 
         # Divider
         ctk.CTkFrame(frame_checkout, height=1, fg_color=_BORDER, corner_radius=0
-                     ).pack(fill="x", padx=12, pady=(0, 8))
+                     ).pack(fill="x", padx=15, pady=(0, 8))
 
         # Linha 3: total + botão finalizar (destaque premium)
         linha2 = ctk.CTkFrame(frame_checkout, fg_color="transparent")
-        linha2.pack(fill="x", padx=12, pady=(0, 12))
+        linha2.pack(fill="x", padx=15, pady=(0, 12))
 
         # Bloco do total
-        frame_total = ctk.CTkFrame(linha2, fg_color=("#F0FDF4", "#0D3B26"), corner_radius=8)
+        frame_total = ctk.CTkFrame(
+            linha2, fg_color=_BG_CARD, corner_radius=8,
+            border_width=1, border_color=_BORDER,
+        )
         frame_total.pack(side="left", padx=(0, 10), pady=2)
 
         ctk.CTkLabel(
@@ -314,8 +327,8 @@ class TelaVenda(ctk.CTkFrame):
 
         self.lbl_total = ctk.CTkLabel(
             frame_total, text="R$ 0,00",
-            font=ctk.CTkFont(family="Segoe UI", size=30, weight="bold"),
-            text_color=("#059669", "#34D399"),
+            font=ctk.CTkFont(family="Segoe UI", size=26, weight="bold"),
+            text_color=("#16a34a", "#22c55e"),
         )
         self.lbl_total.pack(padx=14, pady=(0, 6))
 
@@ -323,10 +336,11 @@ class TelaVenda(ctk.CTkFrame):
             linha2,
             text="✔  Finalizar Venda",
             command=self._finalizar_venda,
-            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
-            fg_color=_BTN_FIN, hover_color=("#155F3C", "#047857"),
-            text_color=("#FFFFFF", "#FFFFFF"),
-            corner_radius=10, height=44,
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            fg_color=("#22c55e", "#22c55e"),
+            hover_color=("#16a34a", "#16a34a"),
+            text_color="#ffffff",
+            corner_radius=8, height=44,
         ).pack(side="right", fill="y")
 
     # ── HISTÓRICO ─────────────────────────────────────────────────────
@@ -338,31 +352,32 @@ class TelaVenda(ctk.CTkFrame):
         )
         frame.grid(row=0, column=2, sticky="nsew", padx=(8, 0))
         frame.grid_columnconfigure(0, weight=1)
-        frame.grid_rowconfigure(1, weight=1)
+        frame.grid_rowconfigure(2, weight=1)
 
         ctk.CTkLabel(
-            frame, text="📅  Histórico de Vendas por Dia",
-            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
+            frame, text="📅  Histórico do Dia",
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
             text_color=_FG_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="ew", padx=15, pady=(12, 6))
+        ).grid(row=0, column=0, sticky="ew", padx=15, pady=(12, 4))
 
         # Filtro de data
         frame_filtro = ctk.CTkFrame(frame, fg_color="transparent")
-        frame_filtro.grid(row=0, column=0, sticky="e", padx=15, pady=(12, 6))
+        frame_filtro.grid(row=1, column=0, sticky="ew", padx=15, pady=(0, 8))
+        frame_filtro.grid_columnconfigure(1, weight=1)
 
         ctk.CTkLabel(
             frame_filtro, text="Data:",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            text_color=_FG_LABEL,
-        ).pack(side="left", padx=(0, 5))
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=_FG_MUTED,
+        ).grid(row=0, column=0, sticky="w", padx=(0, 6))
 
         self.entry_data = ctk.CTkEntry(
-            frame_filtro, width=100, height=30,
-            font=ctk.CTkFont(size=13),
-            fg_color=_BG_WINDOW, border_color=_BORDER,
-            text_color=_FG_PRIMARY, corner_radius=6, justify="center",
+            frame_filtro, height=38,
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            fg_color=_BG_WINDOW, border_color=_BORDER, border_width=1,
+            text_color=_FG_PRIMARY, corner_radius=8, justify="center",
         )
-        self.entry_data.pack(side="left")
+        self.entry_data.grid(row=0, column=1, sticky="ew")
         self.entry_data.insert(0, self._data_filtro)
         self.entry_data.bind("<KeyRelease>", self._mascara_data)
 
@@ -370,40 +385,35 @@ class TelaVenda(ctk.CTkFrame):
             frame_filtro,
             text="🔍 Filtrar",
             command=self._atualizar_historico,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=_BTN_FILT, hover_color=_ACCENT_BLUE,
-            text_color=("#FFFFFF", "#FFFFFF"),
-            corner_radius=6, height=30, width=80,
-        ).pack(side="left", padx=(6, 0))
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            fg_color=("#3b82f6", "#3b82f6"),
+            hover_color=("#2563eb", "#2563eb"),
+            text_color="#ffffff",
+            corner_radius=8, height=38, width=90,
+        ).grid(row=0, column=2, sticky="e", padx=(8, 0))
 
-        # Treeview histórico
+        # Treeview histórico oculta em memória para compatibilidade 100%
         bg_hist = _hex(_BG_CARD)
         _aplicar_estilo_treeview("Hist", bg_hist, _hex(_ACCENT_GOLD))
-
         frame_tv = tk.Frame(frame, bg=bg_hist)
-        frame_tv.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
-
         colunas = ("ID", "Modelo", "Cor/Tam", "Qtd", "Total")
         self.tabela_historico = ttk.Treeview(
             frame_tv, columns=colunas, show="headings",
-            height=14, style="Hist.Treeview",
+            height=1, style="Hist.Treeview",
         )
-        for col, w, anc in [
-            ("ID", 40, "center"), ("Modelo", 200, "w"),
-            ("Cor/Tam", 100, "center"), ("Qtd", 40, "center"),
-            ("Total", 80, "center"),
-        ]:
-            self.tabela_historico.heading(col, text=col)
-            self.tabela_historico.column(col, width=w, anchor=anc)
 
-        scroll_hist = ttk.Scrollbar(
-            frame_tv, orient="vertical",
-            command=self.tabela_historico.yview,
-            style="Venda.Vertical.TScrollbar",
+        # Lista de Cards do Histórico (Design System Slate Web)
+        self.frame_cards_historico = ctk.CTkScrollableFrame(
+            frame,
+            fg_color=_BG_WINDOW,
+            corner_radius=8,
+            border_width=1,
+            border_color=_BG_CARD,
+            scrollbar_button_color=_ACCENT_BLUE,
+            scrollbar_button_hover_color=("#2563eb", "#2563eb"),
         )
-        self.tabela_historico.configure(yscrollcommand=scroll_hist.set)
-        self.tabela_historico.pack(side="left", fill="both", expand=True)
-        scroll_hist.pack(side="right", fill="y")
+        self.frame_cards_historico.grid(row=2, column=0, sticky="nsew", padx=15, pady=(0, 12))
+        self.frame_cards_historico.grid_columnconfigure(0, weight=1)
 
     # ════════════════════════════════════════════════════════════════════
     # LÓGICA — CARRINHO (preservada integralmente)
@@ -621,7 +631,7 @@ class TelaVenda(ctk.CTkFrame):
             )
             lbl_tit.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=(8, 1))
 
-            sub_parts = [s for s in (corte.strip(), tecido.strip()) if s]
+            sub_parts = [str(s).strip() for s in (corte, tecido) if _valor_valido(s)]
             sub_txt   = " • ".join(sub_parts) if sub_parts else "Toque para escolher tamanho"
             lbl_sub = ctk.CTkLabel(
                 card_item,
@@ -907,10 +917,9 @@ class TelaVenda(ctk.CTkFrame):
                     text="−",
                     width=32, height=32,
                     corner_radius=8,
-                    fg_color=_BG_WINDOW,
-                    hover_color=_ACCENT_BLUE,
-                    border_width=1,
-                    border_color=_BORDER,
+                    fg_color=("#E2E8F0", "#334155"),
+                    hover_color=("#CBD5E1", "#475569"),
+                    text_color=_FG_PRIMARY,
                     font=ctk.CTkFont(size=16, weight="bold"),
                     command=lambda i=idx: self._alterar_qtd_item(i, -1),
                 ).pack(side="left", padx=2)
@@ -928,10 +937,9 @@ class TelaVenda(ctk.CTkFrame):
                     text="+",
                     width=32, height=32,
                     corner_radius=8,
-                    fg_color=_BG_WINDOW,
-                    hover_color=_ACCENT_BLUE,
-                    border_width=1,
-                    border_color=_BORDER,
+                    fg_color=("#E2E8F0", "#334155"),
+                    hover_color=("#CBD5E1", "#475569"),
+                    text_color=_FG_PRIMARY,
                     font=ctk.CTkFont(size=16, weight="bold"),
                     command=lambda i=idx: self._alterar_qtd_item(i, +1),
                 ).pack(side="left", padx=2)
@@ -941,10 +949,9 @@ class TelaVenda(ctk.CTkFrame):
                     text="🗑️",
                     width=32, height=32,
                     corner_radius=8,
-                    fg_color=("#fee2e2", "#2d161d"),
-                    hover_color=_BTN_DEL,
-                    border_width=1,
-                    border_color=("#fca5a5", "#5c1d24"),
+                    fg_color=("#ef4444", "#ef4444"),
+                    hover_color=("#dc2626", "#dc2626"),
+                    text_color="#ffffff",
                     font=ctk.CTkFont(size=14),
                     command=lambda i=idx: self._remover_item_idx(i),
                 ).pack(side="left", padx=(6, 0))
@@ -1002,31 +1009,32 @@ class TelaVenda(ctk.CTkFrame):
 
         # Resumo de valores
         frame_resumo = ctk.CTkFrame(
-            popup, fg_color=("#EAECEE", "#1A2236"), corner_radius=8,
+            popup, fg_color=_BG_CARD, corner_radius=12,
+            border_width=1, border_color=_BORDER,
         )
         frame_resumo.pack(fill="x", padx=18, pady=(0, 10))
         ctk.CTkLabel(
             frame_resumo,
             text=f"Total Líquido: R$ {total_final:.2f}",
             font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
-            text_color=("#27AE60", "#34D399"),
-        ).pack(padx=14, pady=10)
+            text_color=("#16a34a", "#22c55e"),
+        ).pack(padx=15, pady=12)
 
         # Forma de pagamento
         ctk.CTkLabel(
             popup, text="Forma de Pagamento:",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            text_color=_FG_LABEL,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=_FG_MUTED,
         ).pack(pady=(0, 4))
 
         combo_pagamento = ctk.CTkComboBox(
             popup,
             values=["DINHEIRO", "CARTAO", "PIX", "FIADO"],
             state="readonly",
-            width=260, height=36,
-            font=ctk.CTkFont(size=15),
-            fg_color=_BG_CARD, border_color=_BORDER,
-            button_color=_ACCENT_BLUE, button_hover_color=_ACCENT_GOLD,
+            width=260, height=38,
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            fg_color=_BG_WINDOW, border_color=_BORDER, border_width=1,
+            button_color=_ACCENT_BLUE, button_hover_color=("#1d4ed8", "#2563eb"),
             text_color=_FG_PRIMARY, corner_radius=8,
         )
         combo_pagamento.set(self._forma_pagamento.get())
@@ -1034,57 +1042,60 @@ class TelaVenda(ctk.CTkFrame):
 
         # Painel do Fiado (oculto inicialmente)
         frame_fiado = ctk.CTkFrame(
-            popup, fg_color=_BG_CARD, corner_radius=10,
+            popup, fg_color=_BG_CARD, corner_radius=12,
             border_width=1, border_color=_BORDER,
         )
 
         ctk.CTkLabel(
             frame_fiado,
             text="Vinculação de Conta Corrente / Fiado",
-            font=ctk.CTkFont(size=14, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
             text_color=_FG_PRIMARY,
-        ).pack(anchor="w", padx=12, pady=(10, 4))
+        ).pack(anchor="w", padx=15, pady=(12, 4))
 
         ctk.CTkLabel(frame_fiado, text="Cliente Cadastrado:",
-                     font=ctk.CTkFont(size=13), text_color=_FG_LABEL).pack(anchor="w", padx=12)
+                     font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+                     text_color=_FG_MUTED).pack(anchor="w", padx=15)
         lista_clientes_db = fiado_ctrl.listar_clientes()
         dict_clientes = {c["nome"]: c["id"] for c in lista_clientes_db}
         combo_clientes = ctk.CTkComboBox(
             frame_fiado,
             values=list(dict_clientes.keys()) if dict_clientes else ["—"],
-            state="readonly", width=400, height=32,
-            font=ctk.CTkFont(size=13),
-            fg_color=_BG_WINDOW, border_color=_BORDER,
-            button_color=_ACCENT_BLUE, text_color=_FG_PRIMARY, corner_radius=6,
+            state="readonly", width=400, height=38,
+            font=ctk.CTkFont(family="Segoe UI", size=13),
+            fg_color=_BG_WINDOW, border_color=_BORDER, border_width=1,
+            button_color=_ACCENT_BLUE, text_color=_FG_PRIMARY, corner_radius=8,
         )
-        combo_clientes.pack(padx=12, pady=(0, 6))
+        combo_clientes.pack(padx=15, pady=(2, 8))
 
         ctk.CTkLabel(
             frame_fiado, text="— OU CADASTRAR CLIENTE NOVO AGORA —",
-            font=ctk.CTkFont(size=12, weight="bold"), text_color=_FG_MUTED,
-        ).pack(pady=(4, 0))
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=_FG_MUTED,
+        ).pack(pady=(4, 2))
 
         ctk.CTkLabel(frame_fiado, text="Nome do Cliente:",
-                     font=ctk.CTkFont(size=13), text_color=_FG_LABEL).pack(anchor="w", padx=12)
+                     font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+                     text_color=_FG_MUTED).pack(anchor="w", padx=15)
         entry_nome_novo = ctk.CTkEntry(
-            frame_fiado, width=400, height=30,
-            font=ctk.CTkFont(size=13),
-            fg_color=_BG_WINDOW, border_color=_BORDER,
-            text_color=_FG_PRIMARY, corner_radius=6,
+            frame_fiado, width=400, height=38,
+            font=ctk.CTkFont(family="Segoe UI", size=13),
+            fg_color=_BG_WINDOW, border_color=_BORDER, border_width=1,
+            text_color=_FG_PRIMARY, corner_radius=8,
         )
-        entry_nome_novo.pack(padx=12, pady=(0, 6))
+        entry_nome_novo.pack(padx=15, pady=(2, 8))
 
         ctk.CTkLabel(frame_fiado, text="Data Combinada (DD/MM/AAAA):",
-                     font=ctk.CTkFont(size=13, weight="bold"), text_color=_FG_LABEL).pack(anchor="w", padx=12)
+                     font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+                     text_color=_FG_MUTED).pack(anchor="w", padx=15)
         entry_vencimento = ctk.CTkEntry(
-            frame_fiado, width=200, height=30,
-            font=ctk.CTkFont(size=14),
-            fg_color=_BG_WINDOW, border_color=_BORDER,
-            text_color=_FG_PRIMARY, corner_radius=6, justify="center",
+            frame_fiado, width=200, height=38,
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            fg_color=_BG_WINDOW, border_color=_BORDER, border_width=1,
+            text_color=_FG_PRIMARY, corner_radius=8, justify="center",
         )
         from datetime import timedelta
         data_sugerida = (datetime.now() + timedelta(days=30)).strftime("%d/%m/%Y")
-        entry_vencimento.pack(padx=12, pady=(0, 12))
+        entry_vencimento.pack(padx=15, pady=(2, 12))
         entry_vencimento.insert(0, data_sugerida)
 
         def _toggle_fiado(choice=None):
@@ -1154,14 +1165,15 @@ class TelaVenda(ctk.CTkFrame):
             popup,
             text="✔  FINALIZAR E SALVAR ESTOQUE",
             command=confirmar_fechamento_caixa,
-            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
-            fg_color=_BTN_FIN, hover_color=("#155F3C", "#047857"),
-            text_color=("#FFFFFF", "#FFFFFF"),
-            corner_radius=10, height=44,
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            fg_color=("#22c55e", "#22c55e"),
+            hover_color=("#16a34a", "#16a34a"),
+            text_color="#ffffff",
+            corner_radius=8, height=44,
         ).pack(side="bottom", fill="x", padx=18, pady=14)
 
     # ════════════════════════════════════════════════════════════════════
-    # LÓGICA — HISTÓRICO (preservada integralmente)
+    # LÓGICA — HISTÓRICO (preservada integralmente + Cards Slate Web)
     # ════════════════════════════════════════════════════════════════════
 
     def _mascara_data(self, event):
@@ -1178,9 +1190,26 @@ class TelaVenda(ctk.CTkFrame):
     def _atualizar_historico(self):
         for linha in self.tabela_historico.get_children():
             self.tabela_historico.delete(linha)
+
+        if hasattr(self, "frame_cards_historico"):
+            for w in self.frame_cards_historico.winfo_children():
+                w.destroy()
+
         data = self.entry_data.get().strip() or self._data_filtro
         self._data_filtro = data
-        for v in estoque_ctrl.buscar_vendas_por_data(data):
+        vendas_dia = estoque_ctrl.buscar_vendas_por_data(data)
+
+        if not vendas_dia and hasattr(self, "frame_cards_historico"):
+            ctk.CTkLabel(
+                self.frame_cards_historico,
+                text="Nenhuma venda registrada\nnesta data.",
+                font=ctk.CTkFont(family="Segoe UI", size=13),
+                text_color=_FG_MUTED,
+                justify="center",
+            ).pack(pady=30)
+            return
+
+        for idx, v in enumerate(vendas_dia):
             self.tabela_historico.insert(
                 "", tk.END,
                 values=(
@@ -1191,6 +1220,53 @@ class TelaVenda(ctk.CTkFrame):
                 ),
             )
 
+            if hasattr(self, "frame_cards_historico"):
+                card_h = ctk.CTkFrame(
+                    self.frame_cards_historico,
+                    fg_color=_BG_CARD,
+                    corner_radius=10,
+                    border_width=1,
+                    border_color=_BORDER,
+                )
+                card_h.grid(row=idx, column=0, sticky="ew", padx=4, pady=4)
+                card_h.grid_columnconfigure(0, weight=1)
+
+                # Topo: Modelo à esquerda + Valor em verde à direita
+                ctk.CTkLabel(
+                    card_h,
+                    text=f"#{v['id']}  ·  {v['modelo_nome']}",
+                    font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+                    text_color=_FG_PRIMARY,
+                    anchor="w",
+                ).grid(row=0, column=0, sticky="w", padx=12, pady=(8, 2))
+
+                ctk.CTkLabel(
+                    card_h,
+                    text=f"R$ {v['valor_total']:.2f}",
+                    font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
+                    text_color=("#16a34a", "#22c55e"),
+                    anchor="e",
+                ).grid(row=0, column=1, sticky="e", padx=12, pady=(8, 2))
+
+                # Base: Badge de tamanho/cor à esquerda + Quantidade à direita
+                cor_v = (v.get("cor") or "").strip()
+                cor_txt = f"  ·  {cor_v}" if _valor_valido(cor_v) and cor_v.casefold() != "padrão" else ""
+                ctk.CTkLabel(
+                    card_h,
+                    text=f"Tam: {v.get('tamanho', '—')}{cor_txt}",
+                    font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+                    text_color=_FG_MUTED,
+                    anchor="w",
+                ).grid(row=1, column=0, sticky="w", padx=12, pady=(0, 8))
+
+                ctk.CTkLabel(
+                    card_h,
+                    text=f"×{v['quantidade']} un.",
+                    font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+                    text_color=("#2563eb", "#3b82f6"),
+                    anchor="e",
+                ).grid(row=1, column=1, sticky="e", padx=12, pady=(0, 8))
+
     def _limpar_pos_venda(self):
         self._carrinho = []
         self.entry_desconto.delete(0, tk.END)
@@ -1199,6 +1275,7 @@ class TelaVenda(ctk.CTkFrame):
         self._atualizar_tabela_carrinho()
         self._recarregar_combo()
         self._atualizar_historico()
+        self.update_idletasks()
 
     def _recarregar_combo(self):
         """Recarrega _dados_combo do banco (alimenta vitrine lateral e bipe global)."""
@@ -1221,3 +1298,13 @@ class TelaVenda(ctk.CTkFrame):
         self._recarregar_combo()
         self._atualizar_historico()
         self._atualizar_tabela_carrinho()
+        self.update_idletasks()
+
+    def carregar_produtos(self):
+        self.atualizar_dados()
+
+    def atualizar_lista(self):
+        self.atualizar_dados()
+
+    def carregar_dados(self):
+        self.atualizar_dados()

@@ -100,6 +100,11 @@ class TelaPrincipal(ctk.CTk):
         self._BIPE_MIN_LEN   = 5        # mínimo de dígitos para considerar código
         self._BIPE_MAX_LEN   = 20       # máximo de chars no buffer
 
+        # ── Monitor de Sincronização em Tempo Real (SQLite) ──────────
+        self._ultimo_estado_banco   = None
+        self._monitor_sync_id       = None
+        self._ultima_tecla_digitada = 0.0
+
         # ── Configuração da janela ──────────────────────────────────
         self.title("Sistema de Gestão Kanemberg")
         self.geometry("1280x780")
@@ -123,6 +128,9 @@ class TelaPrincipal(ctk.CTk):
 
         # Tela inicial
         self.mostrar_tela("boas_vindas")
+
+        # Inicia o monitor automático de mudanças no banco (3000ms)
+        self._iniciar_monitor_sincronizacao()
 
     # ════════════════════════════════════════════════════════════════
     # CARREGAMENTO DO LOGO
@@ -798,6 +806,7 @@ class TelaPrincipal(ctk.CTk):
         """
         widget = event.widget
         if isinstance(widget, (tk.Entry, tk.Text)) or widget.winfo_class() in ('Entry', 'Text', 'TEntry', 'CTkEntry', 'CTkTextbox'):
+            self._ultima_tecla_digitada = time.time()
             return
 
         agora = time.time()
@@ -874,6 +883,97 @@ class TelaPrincipal(ctk.CTk):
                 f"ou está com estoque zerado.",
             )
 
+    # ════════════════════════════════════════════════════════════════
+    # MONITOR DE BANCO DE DADOS EM TEMPO REAL (AUTO-REFRESH 3000ms)
+    # ════════════════════════════════════════════════════════════════
+
+    def _obter_estado_banco(self):
+        """Executa query SQLite ultrarrápida (<1ms) retornando a tupla de estado atual."""
+        import sqlite3
+        from database.conexao import _DB_PATH
+
+        conn = sqlite3.connect(_DB_PATH, timeout=2.0)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT
+                    (SELECT COUNT(*) FROM vendas),
+                    (SELECT COALESCE(SUM(estoque), 0) FROM produto_variacoes),
+                    (SELECT COUNT(*) FROM conta_fiado)
+                """
+            )
+            return cur.fetchone()
+        finally:
+            conn.close()
+
+    def _iniciar_monitor_sincronizacao(self):
+        """Inicia o monitor de sincronização em tempo real a cada 3000ms."""
+        try:
+            self._ultimo_estado_banco = self._obter_estado_banco()
+        except Exception as exc:
+            print(f"[SyncMonitor] Aviso ao ler estado inicial do banco: {exc}")
+        if self._monitor_sync_id:
+            try:
+                self.after_cancel(self._monitor_sync_id)
+            except Exception:
+                pass
+        self._monitor_sync_id = self.after(3000, self._verificar_mudancas_banco)
+
+    def _verificar_mudancas_banco(self):
+        """
+        Verifica a cada 3000ms se houve vendas, baixa de estoque ou movimentação
+        de fiado (ex: pelo iPhone/PWA) e atualiza a tela aberta imediatamente.
+        """
+        if not self.winfo_exists():
+            return
+
+        try:
+            estado_atual = self._obter_estado_banco()
+            if self._ultimo_estado_banco is None:
+                self._ultimo_estado_banco = estado_atual
+            elif estado_atual != self._ultimo_estado_banco:
+                # Verifica se o foco atual NÃO é um campo de digitação ativo (Entry)
+                foco = self.focus_get()
+                digitando_em_entry = False
+                if foco is not None:
+                    cls_foco = foco.winfo_class()
+                    eh_campo_texto = (
+                        isinstance(foco, (tk.Entry, tk.Text, ctk.CTkEntry))
+                        or cls_foco in ("Entry", "Text", "TEntry", "CTkEntry", "CTkTextbox")
+                    )
+                    if eh_campo_texto:
+                        # Na tela de Estoque a barra de busca ganha foco automático ao abrir;
+                        # só bloqueia se o usuário digitou algo nos últimos 2.5 segundos
+                        # ou se estiver em outra tela com Entry focado.
+                        if self._tela_atual == "estoque":
+                            digitando_em_entry = (time.time() - self._ultima_tecla_digitada) < 2.5
+                        else:
+                            digitando_em_entry = True
+
+                if not digitando_em_entry and self._tela_atual != "cadastro":
+                    self._ultimo_estado_banco = estado_atual
+                    frame = self._frame_atual
+                    if frame is not None and frame.winfo_exists():
+                        for nome_metodo in (
+                            "atualizar_dados",
+                            "carregar_produtos",
+                            "atualizar_lista",
+                            "carregar_dados",
+                            "carregar_dados_e_renderizar_dashboard",
+                            "_recarregar_dados",
+                        ):
+                            if hasattr(frame, nome_metodo):
+                                getattr(frame, nome_metodo)()
+                                break
+                        # Força o CustomTkinter a recalcular e redesenhar os cards na hora
+                        frame.update_idletasks()
+                        self.update_idletasks()
+        except Exception as exc:
+            print(f"[SyncMonitor] Erro ao verificar mudanças no banco: {exc}")
+        finally:
+            if self.winfo_exists():
+                self._monitor_sync_id = self.after(3000, self._verificar_mudancas_banco)
 
     # ════════════════════════════════════════════════════════════════
     # FECHAMENTO LIMPO
@@ -884,6 +984,11 @@ class TelaPrincipal(ctk.CTk):
         Encerramento limpo ao fechar pelo botão X da janela.
         Dispara backup de segurança em thread daemon antes de destruir.
         """
+        if self._monitor_sync_id:
+            try:
+                self.after_cancel(self._monitor_sync_id)
+            except Exception:
+                pass
         try:
             from backup import disparar_backup
             disparar_backup(motivo="encerramento pelo X")

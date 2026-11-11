@@ -140,6 +140,7 @@ def listar_produtos_vitrine_grade() -> list[dict]:
             resultado.append({
                 "produto_id":       g["produto_id"],
                 "tipo_peca":        g["tipo_peca"],
+                "modelo_nome":      g["tipo_peca"],
                 "marca":            g["marca"],
                 "corte":            g["corte"],
                 "tecido":           g["tecido"],

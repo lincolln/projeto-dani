@@ -16,36 +16,36 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from controllers import estoque_ctrl, config_ctrl
 from controllers.dash_ctrl import DashboardController
 
-# ── Paleta Premium (herdada do tema escuro do app) ─────────────────────────────
+# ── Paleta Slate Web (PWA Dark Mode) ─────────────────────────────────────────
 C = {
-    "bg":          "#0F1117",   # fundo principal
-    "panel":       "#16191F",   # painéis, cards, sidebar
-    "border":      "#22273A",   # bordas e hover
-    "border_lite": "#2C3249",   # borda mais suave
-    "accent":      "#E1B12C",   # dourado — ativo / destaque
-    "accent2":     "#1E3A5F",   # azul executivo
-    "fg":          "#F0F2F8",   # texto principal
-    "fg_muted":    "#8A8FA8",   # texto secundário
-    "green":       "#1DB954",   # recebimentos
-    "red":         "#E74C3C",   # gastos
-    "blue":        "#4A90D9",   # lucro
-    "plot_bg":     "#16191F",   # fundo do gráfico
-    "plot_ax":     "#1C2233",   # área do eixo
-    "plot_grid":   "#2C3249",   # grid
+    "bg":          "#0f172a",   # fundo principal
+    "panel":       "#1e293b",   # painéis, cards, sidebar
+    "border":      "#334155",   # bordas e hover
+    "border_lite": "#475569",   # borda mais suave
+    "accent":      "#3b82f6",   # azul web — ativo / destaque
+    "accent2":     "#0f172a",   # sub-card (fundo botão ativo)
+    "fg":          "#f8fafc",   # texto principal
+    "fg_muted":    "#94a3b8",   # texto secundário
+    "green":       "#22c55e",   # recebimentos
+    "red":         "#ef4444",   # gastos
+    "blue":        "#3b82f6",   # lucro
+    "plot_bg":     "#1e293b",   # fundo do gráfico
+    "plot_ax":     "#0f172a",   # área do eixo
+    "plot_grid":   "#334155",   # grid
 }
 
-# Cores de cada visão de gráfico (alinhadas com a paleta)
+# Cores de cada visão de gráfico (alinhadas com a paleta Slate Web)
 VISAO_CORES = {
     "LINHA":  {"cor": C["accent"],  "icon": "📈", "label": "Histórico Temporal"},
     "ROSCA":  {"cor": C["green"],   "icon": "🍩", "label": "Raio-X do Estoque"},
     "MARCA":  {"cor": C["blue"],    "icon": "🏷️", "label": "Por Marca"},
-    "TIPO":   {"cor": "#E67E22",    "icon": "👕", "label": "Por Tipo de Peça"},
-    "CORTE":  {"cor": "#9B59B6",    "icon": "✂️", "label": "Por Corte"},
-    "TECIDO": {"cor": "#1ABC9C",    "icon": "🧵", "label": "Por Tecido"},
+    "TIPO":   {"cor": "#f59e0b",    "icon": "👕", "label": "Por Tipo de Peça"},
+    "CORTE":  {"cor": "#a855f7",    "icon": "✂️", "label": "Por Corte"},
+    "TECIDO": {"cor": "#14b8a6",    "icon": "🧵", "label": "Por Tecido"},
 }
 
 # Cores para o gráfico de rosca
-ROSCA_CORES = ["#E1B12C", "#4A90D9", "#1DB954", "#E67E22", "#9B59B6", "#1ABC9C"]
+ROSCA_CORES = ["#3b82f6", "#22c55e", "#f59e0b", "#a855f7", "#14b8a6", "#ef4444"]
 
 # A configuração do Matplotlib foi movida para carregar_dados_e_renderizar_dashboard
 
@@ -173,17 +173,17 @@ class TelaDashboard(tk.Frame):
         self.combo_escala_tempo  = _combo(row, "PERÍODO",    ["Diário", "Semanal", "Mensal"], width=9)
         self.combo_escala_tempo.set("Semanal")
 
-        # Botão Filtrar — estilo premium
+        # Botão Filtrar — estilo Slate Web
         btn = tk.Button(
             row, text="⟳  Aplicar Filtros",
             command=self.carregar_dados_e_renderizar_dashboard,
-            font=("Segoe UI", 9, "bold"),
-            bg=C["accent"], fg="#0F1117",
+            font=("Segoe UI", 11, "bold"),
+            bg="#3b82f6", fg="#ffffff",
             relief="flat", bd=0,
-            padx=14, pady=5, cursor="hand2",
-            activebackground="#F5C842", activeforeground="#0F1117"
+            padx=14, pady=6, cursor="hand2",
+            activebackground="#2563eb", activeforeground="#ffffff"
         )
-        btn.pack(side="left", padx=(4, 0))
+        btn.pack(side="left", padx=(6, 0))
 
     # ══════════════════════════════════════════════════════════════════
     # 3. CARDS KPI
@@ -517,6 +517,13 @@ class TelaDashboard(tk.Frame):
         # Ajuste final do layout e injeção no Tkinter
         fig.tight_layout(pad=2.0)
         self._canvas.draw_idle()
+        self.update_idletasks()
+
+    def atualizar_dados(self):
+        self.carregar_dados_e_renderizar_dashboard()
+
+    def carregar_dados(self):
+        self.carregar_dados_e_renderizar_dashboard()
 
 
 # ──────────────────────────────────────────────────────────────────────────────

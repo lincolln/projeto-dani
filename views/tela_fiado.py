@@ -1432,3 +1432,10 @@ class TelaFiado(ctk.CTkFrame):
             dados = fiado_ctrl.buscar_cliente_por_id(self._cliente_ativo_id)
             if dados:
                 self._selecionar_cliente_card(dados, focar_pagamento=False)
+        self.update_idletasks()
+
+    def atualizar_lista(self):
+        self.atualizar_dados()
+
+    def carregar_dados(self):
+        self.atualizar_dados()

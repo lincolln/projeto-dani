@@ -1,5 +1,5 @@
 """
-tela_saude_margens.py — Painel de Saúde das Margens (Design Premium)
+tela_saude_margens.py — Painel de Saúde das Margens (Design System Slate Web PWA)
 Sistema Kanemberg Multimarcas
 
 Funcionalidades:
@@ -24,38 +24,40 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from controllers import estoque_ctrl
 
-# ── Paletas Dark Premium ─────────────────────────────────────────────────────
-_BG_WINDOW    = ("#F0F2F8", "#0F1117")
-_BG_CARD      = ("#FFFFFF", "#16191F")
-_BG_HOVER     = ("#E8ECF4", "#22273A")
-_FG_PRIMARY   = ("#1A1D2E", "#F0F2F8")
-_FG_MUTED     = ("#6B7280", "#8A8FA8")
-_FG_LABEL     = ("#4B5563", "#A0A8C0")
-_ACCENT_GOLD  = ("#B8861F", "#E1B12C")
-_ACCENT_BLUE  = ("#1B4F8A", "#2D7DD2")
-_BORDER       = ("#DDE3EE", "#22273A")
+# ── Paleta Slate Web (PWA Dark Mode) ─────────────────────────────────────────
+_BG_WINDOW    = ("#F0F2F8", "#0f172a")
+_BG_CARD      = ("#FFFFFF", "#1e293b")
+_BG_SUB       = ("#F4F6FB", "#0f172a")
+_BG_HOVER     = ("#E8ECF4", "#334155")
+_FG_PRIMARY   = ("#1A1D2E", "#f8fafc")
+_FG_MUTED     = ("#6B7280", "#94a3b8")
+_FG_LABEL     = ("#4B5563", "#94a3b8")
+_ACCENT_GOLD  = ("#d97706", "#f59e0b")
+_ACCENT_BLUE  = ("#2563eb", "#3b82f6")
+_BORDER       = ("#DDE3EE", "#334155")
 
-# KPI card colours
-_KPI_GOLD_BG  = ("#FFFBEB", "#2A1F00")
-_KPI_GOLD_FG  = ("#92670A", "#E1B12C")
-_KPI_BLUE_BG  = ("#EFF6FF", "#0A1A3B")
-_KPI_BLUE_FG  = ("#1B4F8A", "#60A5FA")
-_KPI_GRN_BG   = ("#F0FDF4", "#0D3B26")
-_KPI_GRN_FG   = ("#15803D", "#34D399")
-_KPI_RED_BG   = ("#FEF2F2", "#3B0A0A")
-_KPI_RED_FG   = ("#DC2626", "#F87171")
-_KPI_ORG_FG   = ("#D97706", "#F97316")
+# KPI card colours (Slate Web)
+_KPI_GOLD_BG  = ("#FFFFFF", "#1e293b")
+_KPI_GOLD_FG  = ("#16a34a", "#22c55e")
+_KPI_BLUE_BG  = ("#FFFFFF", "#1e293b")
+_KPI_BLUE_FG  = ("#2563eb", "#3b82f6")
+_KPI_GRN_BG   = ("#FFFFFF", "#1e293b")
+_KPI_GRN_FG   = ("#16a34a", "#22c55e")
+_KPI_RED_BG   = ("#FFFFFF", "#1e293b")
+_KPI_RED_FG   = ("#dc2626", "#ef4444")
+_KPI_ORG_FG   = ("#d97706", "#f59e0b")
 
 # Classificação de margens
 _MARGEM_BOA   = 50.0
 _MARGEM_MEDIA = 30.0
 
 # Cores das tags da Treeview
-_TV_BOA     = "#E1B12C"   # dourado
-_TV_MEDIA   = "#F97316"   # laranja
-_TV_RUIM    = "#F87171"   # vermelho
+_TV_BOA     = "#22c55e"   # verde sucesso
+_TV_MEDIA   = "#f59e0b"   # âmbar atenção
+_TV_RUIM    = "#ef4444"   # vermelho perigo
 
-BTN_RELOAD  = ("#1B4F8A", "#2D7DD2")
+BTN_RELOAD    = ("#3b82f6", "#3b82f6")
+BTN_RELOAD_HV = ("#2563eb", "#2563eb")
 
 
 def _hex(color_tuple) -> str:
@@ -67,8 +69,8 @@ def _aplicar_estilo_treeview_margens(bg_hex: str):
     s = ttk.Style()
     s.configure(
         "Margens.Treeview",
-        rowheight=32,
-        font=("Segoe UI", 10),
+        rowheight=34,
+        font=("Segoe UI", 11),
         background=bg_hex,
         fieldbackground=bg_hex,
         foreground=_hex(_FG_PRIMARY),
@@ -76,9 +78,9 @@ def _aplicar_estilo_treeview_margens(bg_hex: str):
     )
     s.configure(
         "Margens.Treeview.Heading",
-        font=("Segoe UI", 10, "bold"),
+        font=("Segoe UI", 11, "bold"),
         background=_hex(_BG_HOVER),
-        foreground=_hex(_ACCENT_GOLD),
+        foreground=_hex(_FG_PRIMARY),
         relief="flat",
     )
     s.map(
@@ -179,7 +181,7 @@ def _tendencia(valor, limiar_bom, limiar_medio):
 # ── Classe principal ──────────────────────────────────────────────────────────
 
 class TelaSaudeMargens(ctk.CTkFrame):
-    """Painel de Saúde das Margens com indicadores visuais premium."""
+    """Painel de Saúde das Margens com Design System Slate Web."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, corner_radius=0, fg_color=_BG_WINDOW)
@@ -204,7 +206,7 @@ class TelaSaudeMargens(ctk.CTkFrame):
     def _construir_interface(self):
         self._construir_header()
         frame_corpo = ctk.CTkFrame(self, fg_color="transparent", corner_radius=0)
-        frame_corpo.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 16))
+        frame_corpo.grid(row=1, column=0, sticky="nsew", padx=15, pady=(0, 12))
         frame_corpo.grid_columnconfigure(0, weight=1)
         frame_corpo.grid_columnconfigure(1, weight=2)
         frame_corpo.grid_rowconfigure(0, weight=1)
@@ -215,20 +217,20 @@ class TelaSaudeMargens(ctk.CTkFrame):
 
     def _construir_header(self):
         frame = ctk.CTkFrame(self, fg_color="transparent", corner_radius=0)
-        frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(18, 10))
+        frame.grid(row=0, column=0, sticky="ew", padx=15, pady=12)
         frame.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
             frame,
             text="📈  Saúde das Margens",
-            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
             text_color=_FG_PRIMARY, anchor="w",
         ).grid(row=0, column=0, sticky="w")
 
         ctk.CTkLabel(
             frame,
             text="Análise de Margem Real vs. Markup — todos os períodos",
-            font=ctk.CTkFont(family="Segoe UI", size=10),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             text_color=_FG_MUTED, anchor="w",
         ).grid(row=1, column=0, sticky="w", pady=(2, 0))
 
@@ -236,21 +238,20 @@ class TelaSaudeMargens(ctk.CTkFrame):
             frame,
             text="↻  Atualizar",
             command=self._recarregar_dados,
-            font=ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             fg_color=BTN_RELOAD,
-            hover_color=_ACCENT_GOLD,
+            hover_color=BTN_RELOAD_HV,
             text_color=("#FFFFFF", "#FFFFFF"),
-            corner_radius=8, height=32, width=120,
+            corner_radius=8, height=38, width=130,
         ).grid(row=0, column=1, rowspan=2, sticky="e")
 
     # ── Coluna Esquerda: KPI Cards ────────────────────────────────────
 
     def _construir_coluna_cards(self, parent):
         self._frame_cards = ctk.CTkFrame(parent, fg_color="transparent", corner_radius=0)
-        self._frame_cards.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        self._frame_cards.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
         self._frame_cards.grid_columnconfigure(0, weight=1)
 
-        # Card de margem com barra de progresso
         self._card_margem, self._canvas_margem = self._criar_kpi_card_com_gauge(
             0, "Margem Real Média", "— %", "Lucro / Venda × 100",
             _KPI_GOLD_BG, _KPI_GOLD_FG
@@ -280,33 +281,31 @@ class TelaSaudeMargens(ctk.CTkFrame):
 
         ctk.CTkLabel(
             card, text=titulo,
-            font=ctk.CTkFont(family="Segoe UI", size=9, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             text_color=_FG_MUTED, anchor="w",
-        ).grid(row=0, column=0, sticky="ew", padx=16, pady=(12, 2))
+        ).grid(row=0, column=0, sticky="ew", padx=15, pady=(12, 2))
 
         lbl_val = ctk.CTkLabel(
             card, text=valor,
-            font=ctk.CTkFont(family="Segoe UI", size=26, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=22, weight="bold"),
             text_color=fg_t, anchor="w",
         )
-        lbl_val.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 4))
+        lbl_val.grid(row=1, column=0, sticky="ew", padx=15, pady=(0, 4))
 
-        # Barra de progresso (gauge)
         gauge_bg  = _hex(bg_t)
         gauge_fg  = _hex(fg_t)
         canvas = tk.Canvas(
             card, height=6, bg=gauge_bg,
             bd=0, highlightthickness=0,
         )
-        canvas.grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 4))
-        # Trilha de fundo
+        canvas.grid(row=2, column=0, sticky="ew", padx=15, pady=(0, 4))
         canvas.bind("<Configure>", lambda e, c=canvas, fg=gauge_fg: self._desenhar_gauge(c, 0, fg))
 
         ctk.CTkLabel(
             card, text=subtitulo,
-            font=ctk.CTkFont(family="Segoe UI", size=8),
+            font=ctk.CTkFont(family="Segoe UI", size=11),
             text_color=_FG_MUTED, anchor="w",
-        ).grid(row=3, column=0, sticky="ew", padx=16, pady=(0, 10))
+        ).grid(row=3, column=0, sticky="ew", padx=15, pady=(0, 12))
 
         return lbl_val, canvas
 
@@ -321,22 +320,22 @@ class TelaSaudeMargens(ctk.CTkFrame):
 
         ctk.CTkLabel(
             card, text=titulo,
-            font=ctk.CTkFont(family="Segoe UI", size=9, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             text_color=_FG_MUTED, anchor="w",
-        ).grid(row=0, column=0, sticky="ew", padx=16, pady=(12, 2))
+        ).grid(row=0, column=0, sticky="ew", padx=15, pady=(12, 2))
 
         lbl_val = ctk.CTkLabel(
             card, text=valor,
-            font=ctk.CTkFont(family="Segoe UI", size=26, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=22, weight="bold"),
             text_color=fg_t, anchor="w",
         )
-        lbl_val.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 2))
+        lbl_val.grid(row=1, column=0, sticky="ew", padx=15, pady=(0, 2))
 
         ctk.CTkLabel(
             card, text=subtitulo,
-            font=ctk.CTkFont(family="Segoe UI", size=8),
+            font=ctk.CTkFont(family="Segoe UI", size=11),
             text_color=_FG_MUTED, anchor="w",
-        ).grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 10))
+        ).grid(row=2, column=0, sticky="ew", padx=15, pady=(0, 12))
 
         return lbl_val
 
@@ -346,30 +345,30 @@ class TelaSaudeMargens(ctk.CTkFrame):
         h = canvas.winfo_height() or 6
         if w <= 1:
             return
-        
+
         fill_w = max(0, min(w, int(w * pct / 100)))
-        
+
         if not hasattr(canvas, "_bg_rect"):
-            canvas._bg_rect = canvas.create_rectangle(0, 0, w, h, fill=_hex(_BG_HOVER), outline="")
+            canvas._bg_rect = canvas.create_rectangle(0, 0, w, h, fill=_hex(_BG_SUB), outline="")
             canvas._fg_rect = canvas.create_rectangle(0, 0, fill_w, h, fill=cor_hex, outline="")
         else:
             canvas.coords(canvas._bg_rect, 0, 0, w, h)
-            canvas.itemconfig(canvas._bg_rect, fill=_hex(_BG_HOVER))
+            canvas.itemconfig(canvas._bg_rect, fill=_hex(_BG_SUB))
             canvas.coords(canvas._fg_rect, 0, 0, fill_w, h)
             canvas.itemconfig(canvas._fg_rect, fill=cor_hex)
 
     def _construir_legenda(self):
         frame_leg = ctk.CTkFrame(
             self._frame_cards, fg_color=_BG_CARD,
-            corner_radius=10, border_width=1, border_color=_BORDER,
+            corner_radius=12, border_width=1, border_color=_BORDER,
         )
         frame_leg.grid(row=4, column=0, sticky="ew", pady=(4, 0))
 
         ctk.CTkLabel(
             frame_leg, text="Legenda da Tabela:",
-            font=ctk.CTkFont(family="Segoe UI", size=9, weight="bold"),
-            text_color=_FG_LABEL, anchor="w",
-        ).pack(anchor="w", padx=14, pady=(10, 4))
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=_FG_PRIMARY, anchor="w",
+        ).pack(anchor="w", padx=15, pady=(12, 4))
 
         for cor_hex, descricao in [
             (_TV_BOA,   "↑  Margem ≥ 50%  — Excelente"),
@@ -377,7 +376,7 @@ class TelaSaudeMargens(ctk.CTkFrame):
             (_TV_RUIM,  "↓  Margem < 30%  — Risco"),
         ]:
             linha = ctk.CTkFrame(frame_leg, fg_color="transparent")
-            linha.pack(anchor="w", padx=14, pady=2)
+            linha.pack(anchor="w", padx=15, pady=2)
             ctk.CTkLabel(
                 linha, text="■",
                 font=ctk.CTkFont(size=14),
@@ -385,11 +384,13 @@ class TelaSaudeMargens(ctk.CTkFrame):
             ).pack(side="left", padx=(0, 6))
             ctk.CTkLabel(
                 linha, text=descricao,
-                font=ctk.CTkFont(family="Segoe UI", size=9),
+                font=ctk.CTkFont(family="Segoe UI", size=12),
                 text_color=_FG_MUTED, fg_color="transparent",
             ).pack(side="left")
 
-        ctk.CTkFrame(frame_leg, height=1, fg_color=_BORDER, corner_radius=0).pack(fill="x", padx=10, pady=(8, 6))
+        ctk.CTkFrame(frame_leg, height=1, fg_color=_BORDER, corner_radius=0).pack(
+            fill="x", padx=15, pady=(8, 6)
+        )
 
         for formula in [
             "Margem = (Venda − Custo) ÷ Venda × 100",
@@ -397,11 +398,11 @@ class TelaSaudeMargens(ctk.CTkFrame):
         ]:
             ctk.CTkLabel(
                 frame_leg, text=formula,
-                font=ctk.CTkFont(family="Consolas", size=9),
-                text_color=_ACCENT_GOLD, anchor="w",
-            ).pack(anchor="w", padx=14, pady=1)
+                font=ctk.CTkFont(family="Consolas", size=11),
+                text_color=_ACCENT_BLUE, anchor="w",
+            ).pack(anchor="w", padx=15, pady=1)
 
-        ctk.CTkFrame(frame_leg, height=6, fg_color="transparent").pack()
+        ctk.CTkFrame(frame_leg, height=8, fg_color="transparent").pack()
 
     # ── Coluna Direita: Treeview de Categorias ────────────────────────
 
@@ -410,22 +411,30 @@ class TelaSaudeMargens(ctk.CTkFrame):
             parent, fg_color=_BG_CARD,
             corner_radius=12, border_width=1, border_color=_BORDER,
         )
-        frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+        frame.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
         frame.grid_columnconfigure(0, weight=1)
         frame.grid_rowconfigure(1, weight=1)
 
         ctk.CTkLabel(
             frame,
             text="Desempenho por Categoria de Produto",
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
             text_color=_FG_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="ew", padx=16, pady=(14, 8))
+        ).grid(row=0, column=0, sticky="ew", padx=15, pady=(12, 8))
 
-        bg_tv = _hex(_BG_CARD)
+        bg_tv = _hex(_BG_SUB)
         _aplicar_estilo_treeview_margens(bg_tv)
 
-        frame_tv = tk.Frame(frame, bg=bg_tv)
-        frame_tv.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        sub_card = ctk.CTkFrame(
+            frame, fg_color=_BG_SUB,
+            corner_radius=8, border_width=1, border_color=_BG_CARD,
+        )
+        sub_card.grid(row=1, column=0, sticky="nsew", padx=15, pady=(0, 12))
+        sub_card.grid_columnconfigure(0, weight=1)
+        sub_card.grid_rowconfigure(0, weight=1)
+
+        frame_tv = tk.Frame(sub_card, bg=bg_tv)
+        frame_tv.grid(row=0, column=0, sticky="nsew", padx=4, pady=4)
 
         colunas = ("categoria", "qtd", "faturamento", "markup", "margem", "status")
         self.tree = ttk.Treeview(
@@ -448,8 +457,10 @@ class TelaSaudeMargens(ctk.CTkFrame):
             self.tree.heading(col, text=label, command=lambda c=col: self._ordenar_por(c))
             self.tree.column(col, width=w, anchor=anc, minwidth=50)
 
-        scroll_v = ttk.Scrollbar(frame_tv, orient="vertical", command=self.tree.yview,
-                                  style="Margens.Vertical.TScrollbar")
+        scroll_v = ttk.Scrollbar(
+            frame_tv, orient="vertical", command=self.tree.yview,
+            style="Margens.Vertical.TScrollbar",
+        )
         self.tree.configure(yscrollcommand=scroll_v.set)
         self.tree.pack(side="left", fill="both", expand=True)
         scroll_v.pack(side="right", fill="y")
@@ -471,6 +482,13 @@ class TelaSaudeMargens(ctk.CTkFrame):
             }
         self._atualizar_cards(metricas)
         self._atualizar_tabela(metricas["por_categoria"])
+        self.update_idletasks()
+
+    def atualizar_dados(self):
+        self._recarregar_dados()
+
+    def carregar_dados(self):
+        self._recarregar_dados()
 
     def _atualizar_cards(self, m: dict):
         margem = m["margem_media_loja"]
@@ -478,7 +496,6 @@ class TelaSaudeMargens(ctk.CTkFrame):
         fat    = m["faturamento_total"]
         qtd    = m["total_vendas"]
 
-        # Cor dinâmica do card de margem
         if margem >= _MARGEM_BOA:
             cor_margem = _KPI_GRN_FG
         elif margem >= _MARGEM_MEDIA:
@@ -496,7 +513,6 @@ class TelaSaudeMargens(ctk.CTkFrame):
         )
         self._card_qtd.configure(text=str(qtd))
 
-        # Atualiza os gauges
         self.after(100, lambda: self._desenhar_gauge(
             self._canvas_margem, min(margem, 100), _hex(cor_margem)
         ))

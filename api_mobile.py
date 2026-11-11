@@ -57,6 +57,77 @@ def _carregar_env(caminho: str) -> None:
 _carregar_env(ENV_PATH)
 
 
+def _garantir_schema_sqlite() -> None:
+    """Garante que todas as tabelas estruturais existam em loja_daniel_v2.db mesmo em instalação limpa."""
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS atributos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                categoria VARCHAR(50) NOT NULL,
+                nome VARCHAR(100) NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS produtos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                modelo_nome VARCHAR(150) NOT NULL,
+                marca VARCHAR(100) DEFAULT '',
+                tecido VARCHAR(100) DEFAULT '',
+                corte VARCHAR(100) DEFAULT '',
+                cores_tags VARCHAR(500) DEFAULT ''
+            );
+            CREATE TABLE IF NOT EXISTS produto_variacoes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                produto_id INTEGER NOT NULL REFERENCES produtos(id),
+                tamanho VARCHAR(20) NOT NULL DEFAULT 'M',
+                cor VARCHAR(50) NOT NULL DEFAULT '',
+                cor_hex VARCHAR(10) DEFAULT '',
+                codigo_barras VARCHAR(30) DEFAULT '',
+                estoque INTEGER DEFAULT 0,
+                preco_custo NUMERIC(10, 2) DEFAULT 0.0,
+                preco_venda NUMERIC(10, 2) DEFAULT 0.0,
+                foto_path VARCHAR(300)
+            );
+            CREATE TABLE IF NOT EXISTS vendas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                variacao_id INTEGER REFERENCES produto_variacoes(id),
+                modelo_nome VARCHAR(150) DEFAULT '',
+                marca VARCHAR(100) DEFAULT '',
+                cor VARCHAR(50) DEFAULT '',
+                tamanho VARCHAR(20) DEFAULT '',
+                quantidade INTEGER DEFAULT 1,
+                valor_unitario NUMERIC(10, 2) DEFAULT 0.0,
+                valor_total NUMERIC(10, 2) DEFAULT 0.0,
+                preco_custo NUMERIC(10, 2) DEFAULT 0.0,
+                data_venda VARCHAR(30) NOT NULL,
+                forma_pagamento VARCHAR(20) DEFAULT 'DINHEIRO'
+            );
+            CREATE TABLE IF NOT EXISTS clientes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome VARCHAR(150) NOT NULL UNIQUE,
+                telefone VARCHAR(20) DEFAULT '',
+                limite_credito NUMERIC(10, 2) DEFAULT 500.0,
+                dia_preferencial_pagamento INTEGER DEFAULT 5
+            );
+            CREATE TABLE IF NOT EXISTS conta_fiado (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cliente_id INTEGER NOT NULL REFERENCES clientes(id),
+                tipo_movimentacao VARCHAR(10) NOT NULL,
+                valor NUMERIC(10, 2) NOT NULL,
+                data_movimentacao DATETIME,
+                data_vencimento_lote DATETIME,
+                descricao VARCHAR(255) DEFAULT ''
+            );
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+_garantir_schema_sqlite()
+
+
 @contextmanager
 def get_db():
     """Gerenciador de contexto para conexão nativa com o SQLite3."""
