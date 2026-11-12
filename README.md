@@ -29,23 +29,20 @@ Sistema comercial completo desenvolvido para a **Kanemberg Multimarcas**, integr
 
 ---
 
-### 3. Instalação das Dependências (Apenas na 1ª Vez)
-Abra o terminal (Prompt de Comando ou PowerShell) dentro da pasta do projeto e execute:
+### 3. Instalação Automática (Apenas na 1ª Vez)
+1. Dê **2 cliques** no arquivo **`1_instalar_no_cliente.bat`** dentro da pasta do projeto.
+2. Ele verificará/instalará o Python 3.12 (se necessário), instalará todas as bibliotecas do `requirements.txt`, configurará o **Cloudflare Tunnel** (`cloudflared`) e criará automaticamente o atalho oficial **`Sistema Kanemberg`** na sua **Área de Trabalho**.
 
-```bash
-pip install -r requirements.txt
-```
-
-*(Dica: você também pode dar 2 cliques no arquivo `1_instalar_no_cliente.bat` na primeira vez para instalar os pacotes e criar o atalho na Área de Trabalho automaticamente).*
+*(Caso prefira instalar manualmente pelo terminal, execute `pip install -r requirements.txt` e depois dê 2 cliques em **`Criar_Atalho.bat`**).*
 
 ---
 
 ### 4. Como Abrir e Entrar no Sistema do Computador (Dia a Dia)
-1. **Na 1ª vez:** Dê **2 cliques** no arquivo **`Iniciar_Kanemberg.bat`** (ou em **`Criar_Atalho.bat`**). Ele criará automaticamente na sua **Área de Trabalho** o atalho oficial **`Sistema Kanemberg`** com o ícone da loja (`static/icon.ico`).
-2. **Nos dias seguintes:** Basta dar **2 cliques** no atalho **`Sistema Kanemberg`** na sua Área de Trabalho:
+1. **No dia a dia:** Basta dar **2 cliques** no atalho **`Sistema Kanemberg`** na sua **Área de Trabalho** (ou abrir diretamente **`Iniciar_Kanemberg.bat`** na pasta do projeto):
    - O terminal do servidor iniciará **minimizado na barra de tarefas** (`WindowStyle = 7`), sem poluir a tela do caixa, mas permanecendo acessível caso precise consultar logs ou encerrar o processo.
    - O **Painel Administrativo Kanemberg v2** abrirá automaticamente **maximizado em primeiro plano** em janela dedicada de aplicativo (`http://localhost:8000/sistema`).
-3. **Permissão do Firewall (1ª vez):** Se o Windows Defender Firewall exibir uma janela perguntando sobre o Python/`cloudflared`, marque as duas caixas (**Redes privadas** e **Redes públicas**) e clique em **`Permitir acesso`**.
+2. **Permissão do Firewall (1ª vez):** Se o Windows Defender Firewall exibir uma janela perguntando sobre o Python/`cloudflared`, marque as duas caixas (**Redes privadas** e **Redes públicas**) e clique em **`Permitir acesso`**.
+3. *(Se precisar recriar apenas o atalho na Área de Trabalho a qualquer momento, execute **`Criar_Atalho.bat`**).*
 
 ---
 
@@ -94,7 +91,8 @@ O sistema conta com um **App Mobile PWA (Progressive Web App)** com tecnologia *
 
 ## Estrutura Principal do Projeto
 
-- **`Iniciar_Kanemberg.bat`** — Inicializador diário do sistema (inicia o servidor minimizado, garante o atalho na Área de Trabalho e abre o painel maximizado).
+- **`1_instalar_no_cliente.bat`** — Instalador automático de 1º uso (verifica/instala Python, dependências, `cloudflared` e cria o atalho na Área de Trabalho).
+- **`Iniciar_Kanemberg.bat`** — Inicializador diário do sistema (inicia o servidor minimizado e abre o painel maximizado em modo `--app`).
 - **`Instalar_Atalho_Desktop.py` / `Criar_Atalho.bat`** — Gerador do ícone oficial (`static/icon.ico`) e do atalho **`Sistema Kanemberg.lnk`** (modo minimizado) na Área de Trabalho.
 - **`api_mobile.py`** — Servidor FastAPI unificado (Desktop + Mobile PWA + Gerenciador de Túnel Cloudflare + Backup SQLite).
 - **`loja_daniel_v2.db`** — Banco de dados SQLite local em modo WAL de alta performance.

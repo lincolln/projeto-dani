@@ -1,19 +1,37 @@
+# Python / Caches / Ambientes Virtuais
 __pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Build / Empacotamento
 build/
-backups_kanemberg/
-backups/
+dist/
+*.spec
 *.zip
+
+# Bancos de Dados & Backups (mantendo loja_daniel_v2.db versionado)
 *.db
 !loja_daniel_v2.db
 *.db-shm
 *.db-wal
-*.pyc
-.env
-cloudflared.exe
+backups/*.db
+backups_kanemberg/
+
+# Etiquetas & Temporarios
+etiquetas/*.png
 _temp_logo.ico
 temp_logo.ico
-config.yml
-test_*.py
-sistema_monolito_backup.js.txt
-task.md
+*.log
 
+# Ambiente Local & Binarios Externos
+.env
+cloudflared.exe
+config.yml
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
